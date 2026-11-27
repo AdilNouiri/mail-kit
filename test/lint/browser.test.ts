@@ -104,6 +104,11 @@ describe("F4.3 dark mode in headless Chromium", () => {
         expect(await styleOf(page, ".mk-footer", "color")).toBe(rgb(d.muted));
         expect(await styleOf(page, ".mk-small a", "color")).toBe(rgb(d.link));
         expect(await styleOf(page, ".mk-text .mk-link", "color")).toBe(rgb(d.link));
+        expect(await styleOf(page, ".mk-code", "color")).toBe(rgb(d.text));
+        expect(await styleOf(page, ".mk-note", "color")).toBe(rgb(d.text));
+        if (theme.footer.link) {
+          expect(await styleOf(page, ".mk-footer a", "color")).toBe(rgb(d.muted));
+        }
         for (const fill of [".mk-code", ".mk-note", ".mk-divider"]) {
           expect(await styleOf(page, fill, "backgroundColor"), fill).toBe(rgb(d.subtle));
         }
