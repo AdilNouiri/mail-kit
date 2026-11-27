@@ -1,4 +1,6 @@
 import { renderMail, VERSION } from "mail-kit";
+import { samples } from "mail-kit/samples";
+import { dreamStudio } from "mail-kit/themes/dream-studio";
 import { majordome } from "mail-kit/themes/majordome";
 import { expect, it } from "vitest";
 
@@ -24,4 +26,13 @@ it("renders the Majordome magic link inside workerd from the packed package", ()
   expect(html).toContain("Me connecter");
   expect(html.match(/<!-- mail-kit [^>]*-->/g)).toEqual([`<!-- mail-kit ${VERSION} -->`]);
   expect(text).toContain(url);
+});
+
+it("renders every sample with the dream-studio theme", () => {
+  for (const name of ["magic-link", "code", "notice"] as const) {
+    const mail = renderMail(dreamStudio, samples[name]("en"));
+    expect(mail.subject.length).toBeGreaterThan(0);
+    expect(mail.html.length).toBeGreaterThan(0);
+    expect(mail.text.length).toBeGreaterThan(0);
+  }
 });

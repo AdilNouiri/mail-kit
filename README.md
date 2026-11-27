@@ -78,12 +78,12 @@ test what a consumer receives.
 
 ```sh
 node scripts/release.ts --dry-run   # builds and tags in a temporary clone, pushes nothing
-node scripts/release.ts             # on main, clean tree: pushes the tag and the commit that removes dist/
+node scripts/release.ts             # on main, clean tree, equal to origin/main: pushes the tag only
 ```
 
-The script builds `dist/` with `tsc`, commits it on a release commit, tags `v<version>`,
-then removes `dist/` again on the next commit, so the default branch stays free of build
-output. Bump `version` in `package.json` and `VERSION` in `src/types.ts` together first, and
+The script builds `dist/` with `tsc` in a temporary clone, makes one commit that adds
+`dist/` on a detached HEAD (a child of `main`, on no branch), tags `v<version>` on it and
+pushes only that tag. `main` never holds `dist/` and is never pushed. Bump `version` in `package.json` and `VERSION` in `src/types.ts` together first, and
 add the entry to `CHANGELOG.md`.
 
 The specification is in [`spec/`](spec/README.md).

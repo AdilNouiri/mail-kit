@@ -1,21 +1,21 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const tscBin = join(root, "node_modules", ".bin", "tsc");
 
 // tsconfig.json is the no-emit development config (decisions/T0.md D4, D5): the release
-// build compiles src/ alone, without Node types; `dom` is only there for the `URL` type,
+// build compiles src/ alone, without Node types; `webworker` is only there for the `URL` type,
 // which Workers and Node both provide (decisions/T6.md).
 export const BUILD_OPTIONS = [
   "--ignoreConfig",
   "--target",
   "es2022",
   "--lib",
-  "es2022,dom",
+  "es2022,webworker",
   "--types",
   "",
   "--module",
@@ -40,6 +40,7 @@ export const BUILD_OPTIONS = [
 export interface ReleaseOptions {
   dryRun: boolean;
   packDir?: string;
+  fromWorkingTree?: boolean;
 }
 
 export interface ReleaseResult {
@@ -47,7 +48,6 @@ export interface ReleaseResult {
   tag: string;
   cloneDir: string;
   releaseCommit: string;
-  cleanupCommit: string;
   tarball: string | undefined;
   cleanup: () => void;
 }
@@ -74,13 +74,30 @@ function sourceFiles(dir: string): string[] {
   return out.sort();
 }
 
+function overlayWorkingTree(repo: string, cloneDir: string): void {
+  const present = git(repo, "ls-files", "-co", "--exclude-standard").split("\n").filter(Boolean);
+  const deleted = new Set(git(repo, "ls-files", "-d").split("\n").filter(Boolean));
+  for (const file of present) {
+    if (deleted.has(file)) {
+      rmSync(join(cloneDir, file), { force: true });
+    } else {
+      mkdirSync(dirname(join(cloneDir, file)), { recursive: true });
+      cpSync(join(repo, file), join(cloneDir, file));
+    }
+  }
+}
+
 export function release(options: ReleaseOptions): ReleaseResult {
   const repo = git(root, "rev-parse", "--show-toplevel");
-  const branch = git(repo, "rev-parse", "--abbrev-ref", "HEAD");
   const originUrl = git(repo, "remote", "get-url", "origin");
   if (!options.dryRun) {
+    const branch = git(repo, "rev-parse", "--abbrev-ref", "HEAD");
     if (branch !== "main") throw new Error(`a real release runs on main, not ${branch}`);
     if (git(repo, "status", "--porcelain")) throw new Error("the working tree is not clean");
+    git(repo, "fetch", "--quiet", originUrl, "main");
+    if (git(repo, "rev-parse", "HEAD") !== git(repo, "rev-parse", "FETCH_HEAD")) {
+      throw new Error("local main differs from origin/main");
+    }
   }
 
   const work = mkdtempSync(join(tmpdir(), "mail-kit-release-"));
@@ -91,6 +108,7 @@ export function release(options: ReleaseOptions): ReleaseResult {
     git(cloneDir, "checkout", "--quiet", "--detach", git(repo, "rev-parse", "HEAD"));
     git(cloneDir, "config", "user.name", "mail-kit release");
     git(cloneDir, "config", "user.email", "release@example.com");
+    if (options.fromWorkingTree && options.dryRun) overlayWorkingTree(repo, cloneDir);
 
     const pkg = JSON.parse(readFileSync(join(cloneDir, "package.json"), "utf8")) as {
       version: string;
@@ -101,8 +119,10 @@ export function release(options: ReleaseOptions): ReleaseResult {
     if (!types.includes(`export const VERSION = "${version}";`)) {
       throw new Error(`VERSION in src/types.ts does not match package.json ${version}`);
     }
-    if (!options.dryRun && git(repo, "ls-remote", "--tags", originUrl, tag)) {
-      throw new Error(`tag ${tag} already exists`);
+    if (!options.dryRun) {
+      if (git(repo, "tag", "--list", tag) || git(repo, "ls-remote", "--tags", originUrl, tag)) {
+        throw new Error(`tag ${tag} already exists`);
+      }
     }
 
     const sources = sourceFiles(join(cloneDir, "src")).map((f) => relative(cloneDir, f));
@@ -124,14 +144,8 @@ export function release(options: ReleaseOptions): ReleaseResult {
       tarball = join(dest, out.split("\n").pop() ?? "");
     }
 
-    git(cloneDir, "rm", "--quiet", "-r", "--cached", "dist");
-    git(cloneDir, "commit", "--quiet", "-m", `release: remove dist after ${tag}`);
-    const cleanupCommit = git(cloneDir, "rev-parse", "HEAD");
-
-    if (!options.dryRun) {
-      git(cloneDir, "push", originUrl, `${cleanupCommit}:refs/heads/main`, `refs/tags/${tag}`);
-    }
-    return { version, tag, cloneDir, releaseCommit, cleanupCommit, tarball, cleanup };
+    if (!options.dryRun) git(cloneDir, "push", originUrl, `refs/tags/${tag}`);
+    return { version, tag, cloneDir, releaseCommit, tarball, cleanup };
   } catch (error) {
     cleanup();
     throw error;

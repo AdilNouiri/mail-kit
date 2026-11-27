@@ -42,9 +42,11 @@ test("F6.1: the tag holds dist, installs from git without an install script, and
   const tagged = git(result.cloneDir, "ls-tree", "-r", "--name-only", result.tag).split("\n");
   assert.ok(tagged.some((f) => f === "dist/index.js"));
   assert.ok(tagged.some((f) => f === "dist/index.d.ts"));
-  const head = git(result.cloneDir, "ls-tree", "-r", "--name-only", "HEAD").split("\n");
-  assert.equal(head.filter((f) => f.startsWith("dist/")).length, 0);
-  assert.equal(git(result.cloneDir, "rev-parse", "HEAD~1"), result.releaseCommit);
+  assert.equal(git(result.cloneDir, "rev-parse", `${result.tag}^{commit}`), result.releaseCommit);
+  const parent = git(result.cloneDir, "ls-tree", "-r", "--name-only", `${result.tag}~1`);
+  assert.equal(parent.split("\n").filter((f) => f.startsWith("dist/")).length, 0);
+  const branches = git(result.cloneDir, "branch", "--all", "--contains", result.tag);
+  assert.ok(!/\bmain\b/.test(branches), `tag reachable from a branch: ${branches}`);
 
   for (const hook of ["preinstall", "install", "postinstall", "prepare"]) {
     assert.equal(pkg.scripts[hook], undefined, `${hook} script present`);
@@ -70,7 +72,7 @@ test("F6.1: the tag holds dist, installs from git without an install script, and
 test("F6.4: no runtime dependency, and dist imports nothing outside itself", () => {
   assert.deepEqual(pkg.dependencies ?? {}, {});
   const dist = join(consumer, "node_modules", "mail-kit", "dist");
-  const imports = /(?:from|import)\s*["']([^"']+)["']/g;
+  const imports = /(?:from\s*|import\s*\(?\s*|require\s*\(\s*)["']([^"']+)["']/g;
   for (const file of walk(dist).filter((f) => f.endsWith(".js") || f.endsWith(".d.ts"))) {
     for (const m of readFileSync(file, "utf8").matchAll(imports)) {
       assert.ok(m[1]?.startsWith("."), `${file} imports ${m[1]}`);

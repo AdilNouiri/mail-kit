@@ -9,8 +9,10 @@ import { release } from "../../scripts/release.ts";
 // fixture folder: the fixtures test what a consumer gets, never `src/`.
 export function installPacked(fixture: "worker" | "node"): void {
   const packDir = mkdtempSync(join(tmpdir(), "mail-kit-pack-"));
-  const result = release({ dryRun: true, packDir });
+  let cleanup = () => {};
   try {
+    const result = release({ dryRun: true, packDir, fromWorkingTree: true });
+    cleanup = result.cleanup;
     if (!result.tarball) throw new Error("no tarball");
     execFileSync(
       "npm",
@@ -28,7 +30,7 @@ export function installPacked(fixture: "worker" | "node"): void {
       { stdio: "inherit" },
     );
   } finally {
-    result.cleanup();
+    cleanup();
     rmSync(packDir, { recursive: true, force: true });
   }
 }

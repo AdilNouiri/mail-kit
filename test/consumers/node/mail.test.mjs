@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { renderMail, VERSION } from "mail-kit";
+import { samples } from "mail-kit/samples";
+import { dreamStudio } from "mail-kit/themes/dream-studio";
 import { majordome } from "mail-kit/themes/majordome";
 
 const url = "https://app.example.com/login?token=EXAMPLE-TOKEN-1234";
@@ -24,4 +26,11 @@ test("renders the Majordome magic link in Node from the packed package", () => {
   assert.ok(html.includes("Me connecter"));
   assert.deepEqual(html.match(/<!-- mail-kit [^>]*-->/g), [`<!-- mail-kit ${VERSION} -->`]);
   assert.ok(text.includes(url));
+});
+
+test("renders every sample with the dream-studio theme", () => {
+  for (const name of ["magic-link", "code", "notice"]) {
+    const mail = renderMail(dreamStudio, samples[name]("en"));
+    assert.ok(mail.subject.length > 0 && mail.html.length > 0 && mail.text.length > 0);
+  }
 });
