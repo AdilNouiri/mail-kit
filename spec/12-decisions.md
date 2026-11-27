@@ -46,6 +46,19 @@
     workflow has `paths-ignore` for Markdown and `spec/`, so it is not a required check
     and needs no copy mode. Rejected: Playwright on GitHub (heavy, against the rule); a
     second job on Node 22 (light CI is one job).
+13. **Loopback `http:` links are accepted in content, never in the theme.** Majordome's
+    magic link comes from the request origin, `http://localhost:<port>` under
+    `wrangler dev` and its e2e harness, so its local sign-in failed with a `ContentError`
+    on v0.1.0. A loopback link opens only on the reader's machine (section 8). The host
+    must be `localhost`, `127.0.0.1` or `[::1]` both as written (ignoring case) and after
+    WHATWG parsing, so uppercase passes and shorthand spellings (`127.1`) do not; any
+    userinfo is refused. Theme URLs (logo, web fonts, footer link) stay `https:`: a theme is fixed
+    when the consumer is built, its logo and fonts load on the recipient's side where a
+    loopback address never serves them, and no consumer has asked. Rejected: an opt-in
+    option of `renderMail` (changes the frozen API for a risk section 8 finds absent);
+    each consumer rewriting its local URL to `https:` (every consumer repeats it and its
+    e2e tests no longer open the link); accepting every `http:` URL (clear text on the
+    network).
 
 ## 12.2 Assumptions
 

@@ -50,8 +50,9 @@ Acceptance criteria:
    (`spec/images/src/build-mockups.mjs` is the visual reference).
 3. **Text escaped.** Given a paragraph `<b>Alice & "Bob"</b>`, when it renders, then the
    html contains `&lt;b&gt;Alice &amp; &quot;Bob&quot;&lt;/b&gt;` and no `<b>` from it.
-4. **URLs checked.** Given a button or link URL that is not `https:` or `mailto:`, when it
-   renders, then `renderMail` throws a `ContentError` with the block index.
+4. **URLs checked.** Given a button or link URL that is not `https:` or `mailto:` (nor a
+   loopback `http:` URL, F2.9), when it renders, then `renderMail` throws a `ContentError`
+   with the block index.
 5. **Button with fallback link.** Given a button block, when it renders, then a bulletproof
    button (a table cell with `bgcolor` and an `<a>` with padding) and, for Outlook, a VML
    `v:roundrect` inside `<!--[if mso]>` are output; unless `fallback: false`, a fallback
@@ -66,6 +67,24 @@ Acceptance criteria:
    and dark, then the images differ by under 1 % of pixels.
 8. **Same input, same bytes.** Given the same theme and content, when it renders twice,
    then the html strings are identical (no date, no random id).
+9. **Loopback `http:` accepted for local development.** Given a button, link block or
+   inline link whose URL is `http:` with the host `localhost`, `127.0.0.1` or `[::1]`
+   (any port, path, query and fragment), when it renders, then it renders like an `https:`
+   URL, in the html (the button's `href`, its fallback link) and in the text part. The
+   host must be one of the three both as written (ignoring case) and as the WHATWG URL
+   parser returns it, so an uppercase host (`http://LOCALHOST:8787/v`) is accepted (the
+   same host), while spellings the parser rewrites to a loopback host
+   (`http://127.1/`, `http://0x7f.0.0.1/`, `http://[0:0:0:0:0:0:0:1]/`) are refused: no
+   request origin is written that way, and a host checked as written is easier to audit.
+   Every other `http:` URL still throws a `ContentError` with the block index, among them
+   the lookalikes `http://localhost.example.com/`, `http://127.0.0.1.example.com/` and
+   `http://localhost./`, other addresses such as `http://127.0.0.2/` and `http://[::2]/`,
+   and every `http:` URL that holds userinfo: `http://localhost@evil.example/` (its host
+   is `evil.example`) and `http://evil.example@localhost/` (its host is loopback, but the
+   text before `@` misleads a reader). No other scheme changes, and theme URLs (`logo`,
+   `webFonts`, `footer.link`) stay `https:` only (decision 13). Found by Majordome, whose
+   magic link is built from the request origin, `http://localhost:<port>` under
+   `wrangler dev` and its Playwright e2e harness.
 
 Edge cases and errors:
 
@@ -73,6 +92,9 @@ Edge cases and errors:
 - `subject` empty or over 200 characters → `ContentError`.
 - `preheader` absent → no hidden preheader div.
 - A paragraph `Inline` link uses the theme's `colors.link`, underlined.
+- A button's address appears twice in the html, in the button's `href` and in the visible
+  fallback link of F2.5: this is the designed fallback, not a defect; `fallback: false`
+  drops the second one.
 
 ## F3 — Plain-text part
 

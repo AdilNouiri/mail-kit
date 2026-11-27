@@ -3,7 +3,7 @@
 T0 runs first and alone. Two tasks with no dependency between them never modify the same
 file.
 
-Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10.
+Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10; 6 = T11.
 
 | Task | Wave |
 | --- | --- |
@@ -18,6 +18,7 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10.
 | T8 | 2 |
 | T9 | 3 |
 | T10 | 5 |
+| T11 | 6 |
 
 ### T0 — Skeleton, tooling and frozen interfaces
 
@@ -145,6 +146,10 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10.
 - **Content**: `send-test` with an injected `fetch` (unit-tested without network), the
   mailbox allow-list, the 429 retry; then the real sends and the Gmail web, Apple Mail
   (sandbox) and Outlook screenshots, sent to CCS with the verification report.
+  Note (27 Nov 2026): T11 runs after T7 and writes the `0.1.1` release notes in
+  `CHANGELOG.md` and the version bump in `package.json`; T7 adds only its own entry under
+  its own heading in `CHANGELOG.md` and writes neither the `0.1.1` heading nor the
+  version.
 - **Criterion**: F8.1 to F8.6 checked; report sent; check green.
 
 ### T8 — Long codes on phones and the CI workflow (light batch)
@@ -217,3 +222,42 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10.
   never in CI.
 - **Criterion**: `npm run test:node22` passes and prints `v22.23.5` from
   `process.version` in the fixture's run; `heavy npm run check` green.
+
+### T11 — Loopback `http:` links and release 0.1.1
+
+- **Depends on**: T6, T7, T10
+- **Files**: `src/escape.ts`, `src/html/check.ts`, `src/types.ts`, `test/escape.test.ts`, `test/html/render.test.ts`, `test/text.test.ts`, `test/theme.test.ts`, `CLAUDE.md`, `CHANGELOG.md`, `package.json`, `package-lock.json`, `README.md`, `spec/decisions/T11.md`
+- **Agent**: `implementer` (opus, effort high: security, URL validation)
+- **Priority**: high
+- **Estimate**: S
+- **Covers**: F2
+- **Content**: found by the Majordome session adopting v0.1.0: its magic link is built
+  from the request origin, `http://localhost:<port>` or `http://127.0.0.1:<port>` under
+  `wrangler dev` and its Playwright e2e harness, so every button and link block threw a
+  `ContentError` and its local sign-in answered 500 (`decisions/T6.md` D5, decision 13).
+  - Content URLs (button, link block, inline link) accept loopback `http:` exactly as
+    F2.9 says; `src/theme.ts` keeps `https:` only and is not changed: extend
+    `isAllowedUrl` so its existing callers keep their meaning (for example a separate
+    scheme value used only by `src/html/check.ts`), and update the `ContentError`
+    message. The text part follows through `renderHtml`'s checks
+    (`src/render-mail.ts`); test it anyway.
+  - Tests: every accepted and refused URL of F2.9 in `test/escape.test.ts`, the button
+    (`href` and fallback link), the link block and an inline link in
+    `test/html/render.test.ts` and `test/text.test.ts`, and a loopback logo,
+    web font and footer link still refused in `test/theme.test.ts`.
+  - `src/types.ts`: the `url` doc comments of the button, link and inline link, and
+    `VERSION` to `0.1.1` (`scripts/release.ts` refuses a `VERSION` that differs from
+    `package.json`); `package.json` and `package-lock.json` (`npm version 0.1.1
+    --no-git-tag-version`); `README.md`'s install line to `#v0.1.1`.
+  - `CLAUDE.md`: the URL rule line becomes "Only `https:` and `mailto:` URLs are accepted,
+    plus loopback `http:` in content blocks (F2.9); theme URLs are `https:` only."
+  - `CHANGELOG.md`: a `0.1.1` heading above `0.1.0` with the release notes (loopback
+    `http:` in content, the lookalikes refused, theme unchanged, mail clients checked as
+    T7 recorded); T7's own entry stays where T7 put it.
+  - The tag `v0.1.1` itself is made by the loop from `main` after the integration pull
+    request merges, with `scripts/release.ts`, as T6 describes (`decisions/T6.md` D2);
+    this task does not tag.
+- **Criterion**: F2.9 tested with every lookalike, userinfo, shorthand and uppercase case
+  it names, and F2.4 still tested; theme URLs still refuse `http:`; `heavy npm run check`
+  green; `CHANGELOG.md` has a `0.1.1` entry; `VERSION`, `package.json` and
+  `package-lock.json` say `0.1.1`.
