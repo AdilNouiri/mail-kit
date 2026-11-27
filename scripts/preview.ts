@@ -52,11 +52,11 @@ export function missingBrowserMessage(env: NodeJS.ProcessEnv = process.env): str
   return `${why}. Install one with: ${INSTALL_COMMAND}`;
 }
 
-/** `root` ends with a separator, so the repository folder itself never matches. */
 export function checkOutDir(outDir: string): string {
   const resolved = resolve(outDir);
-  if (!resolved.startsWith(root)) {
-    throw new Error(`--out must be a folder inside the repository, not ${resolved}`);
+  const allowed = join(root, "preview");
+  if (resolved !== allowed && !resolved.startsWith(`${allowed}/`)) {
+    throw new Error(`--out must be the preview/ folder or a subfolder of it, not ${resolved}`);
   }
   return resolved;
 }

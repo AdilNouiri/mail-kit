@@ -163,18 +163,21 @@ describe("F5 no headless Chromium", () => {
 });
 
 describe("F5 --out guard", () => {
-  it("refuses the repository root, '.' and a folder outside the repository", () => {
-    for (const bad of [root, ".", "..", tmp]) {
-      expect(() => checkOutDir(bad), bad).toThrow("--out must be a folder inside the repository");
+  it("accepts only the preview/ folder and its subfolders", () => {
+    for (const bad of [root, ".", "..", tmp, join(root, "src"), join(root, "preview-x")]) {
+      expect(() => checkOutDir(bad), bad).toThrow("--out must be the preview/ folder");
     }
     expect(checkOutDir(join(root, "preview"))).toBe(join(root, "preview"));
+    expect(checkOutDir(join(root, "preview", "a"))).toBe(join(root, "preview", "a"));
   });
 
   it("the command exits 2 before writing anything", () => {
-    const run = spawnSync(process.execPath, [join(root, "scripts", "preview.ts"), "--out", root], {
+    const src = join(root, "src");
+    const run = spawnSync(process.execPath, [join(root, "scripts", "preview.ts"), "--out", src], {
       encoding: "utf8",
     });
     expect(run.status).toBe(2);
-    expect(run.stderr).toContain("--out must be a folder inside the repository");
+    expect(run.stderr).toContain("--out must be the preview/ folder");
+    expect(existsSync(join(src, "index.html"))).toBe(false);
   });
 });
