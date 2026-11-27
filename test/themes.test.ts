@@ -91,6 +91,14 @@ describe("samples", () => {
         expect(mail.blocks.length).toBeGreaterThan(0);
       }
     }
+    for (const lang of ["fr", "en"] as const) {
+      expect(samples["magic-link"](lang).blocks.map((b) => b.type)).toEqual([
+        "heading",
+        "paragraph",
+        "button",
+        "note",
+      ]);
+    }
     expect(samples.notice("en").blocks.map((b) => b.type)).toEqual([
       "heading",
       "paragraph",
