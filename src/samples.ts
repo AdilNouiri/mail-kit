@@ -14,11 +14,6 @@ const magicLink: Record<Lang, MailContent> = {
       },
       { type: "button", label: "Me connecter", url },
       {
-        type: "link",
-        lead: "Le bouton ne marche pas ? Copiez cette adresse dans votre navigateur :",
-        url,
-      },
-      {
         type: "note",
         content:
           "Le lien est valable 15 minutes et ne sert qu'une fois. Vous n'avez rien demandé ? Ignorez cet e-mail, rien ne sera créé.",
@@ -32,7 +27,6 @@ const magicLink: Record<Lang, MailContent> = {
       { type: "heading", text: "Your sign-in link" },
       { type: "paragraph", content: "Hello, tap the button to open your space." },
       { type: "button", label: "Sign in", url },
-      { type: "link", lead: "The button does not work? Copy this address into your browser:", url },
       {
         type: "note",
         content:
