@@ -51,7 +51,7 @@ export function parseArgs(argv: readonly string[]): SendTestInput {
     if (arg === "--allow-any") input.allowAny = true;
     else if (Object.hasOwn(valued, arg)) {
       input[valued[arg as keyof typeof valued]] = argv[++i] ?? "";
-    } else input.unknown.push(arg.split("=")[0] as string);
+    } else input.unknown.push(arg.startsWith("--") ? (arg.split("=")[0] as string) : "");
   }
   return input;
 }
@@ -74,10 +74,15 @@ export async function sendTest(
   deps: SendTestDeps,
 ): Promise<SendTestResult> {
   if (input.unknown.length > 0) {
-    return { code: 2, stderr: `send-test: unknown option ${input.unknown[0]}` };
+    const name = input.unknown[0];
+    return {
+      code: 2,
+      stderr: name ? `send-test: unknown option ${name}` : "send-test: unexpected argument",
+    };
   }
+  const apiKey = (env.RESEND_API_KEY ?? "").trim();
   const missing: string[] = [];
-  if (!env.RESEND_API_KEY) missing.push("RESEND_API_KEY");
+  if (!apiKey) missing.push("RESEND_API_KEY");
   if (!env.MAIL_KIT_TEST_FROM) missing.push("MAIL_KIT_TEST_FROM");
   if (!input.to) missing.push("--to");
   if (!input.theme) missing.push("--theme");
@@ -85,7 +90,7 @@ export async function sendTest(
   if (missing.length > 0) {
     return { code: 2, stderr: `send-test: missing ${missing.join(", ")}` };
   }
-  if (!/^[!-~]+$/.test(env.RESEND_API_KEY as string)) {
+  if (!/^[!-~]+$/.test(apiKey)) {
     return { code: 2, stderr: "send-test: RESEND_API_KEY is malformed" };
   }
   if (!Object.hasOwn(builtInThemes, input.theme)) {
@@ -119,7 +124,7 @@ export async function sendTest(
     deps.fetch(RESEND_URL, {
       method: "POST",
       headers: {
-        authorization: `Bearer ${env.RESEND_API_KEY}`,
+        authorization: `Bearer ${apiKey}`,
         "content-type": "application/json",
       },
       body,

@@ -153,13 +153,37 @@ describe("hardening", () => {
   it.each([
     [["--bogus"], "--bogus"],
     [["--to=claude@example.com"], "--to"],
-    [["stray"], "stray"],
+    [["stray"], "unexpected argument"],
   ])("exits 2 naming the unknown option %j and sends nothing", async (extra, name) => {
     const d = deps([]);
     const result = await sendTest(parseArgs([...args, ...extra]), env, d.deps);
     expect(result.code).toBe(2);
     expect(result.stderr).toContain(name);
     expect(d.calls).toHaveLength(0);
+  });
+
+  it.each([[[KEY]], [[`--x=${KEY}`]]])(
+    "never prints a key passed as an argument %j",
+    async (extra) => {
+      const d = deps([]);
+      const result = await sendTest(parseArgs([...args, ...extra]), env, d.deps);
+      expect(result.code).toBe(2);
+      expect(`${result.stdout}${result.stderr}`).not.toContain(KEY.slice(3));
+      expect(d.calls).toHaveLength(0);
+    },
+  );
+
+  it("trims surrounding whitespace of the key and sends the trimmed key", async () => {
+    const d = deps([json(200, { id: "id-1" })]);
+    const result = await sendTest(parseArgs(args), { ...env, RESEND_API_KEY: ` ${KEY}\n` }, d.deps);
+    expect(result.code).toBe(0);
+    expect(JSON.stringify(d.calls[0]?.init.headers)).toContain(`Bearer ${KEY}"`);
+  });
+
+  it("treats a whitespace-only key as missing", async () => {
+    const result = await sendTest(parseArgs(args), { ...env, RESEND_API_KEY: "\n" }, deps([]).deps);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("missing RESEND_API_KEY");
   });
 });
 
