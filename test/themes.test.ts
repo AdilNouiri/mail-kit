@@ -1,14 +1,10 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { samples } from "../src/samples.ts";
-import { dreamStudioInput } from "../src/themes/dream-studio.ts";
-import { majordomeInput } from "../src/themes/majordome.ts";
+import { dreamStudio, dreamStudioInput } from "../src/themes/dream-studio.ts";
+import { majordome, majordomeInput } from "../src/themes/majordome.ts";
 
-// T1's defineTheme is not in this branch yet: the placeholder throws, so the theme modules
-// are loaded with an identity stand-in. Removed at merge with T1.
-vi.mock("../src/theme.ts", () => ({ defineTheme: (input: unknown) => input }));
-
-type Entry = Record<string, any>;
+type Entry = Record<string, ReturnType<typeof JSON.parse>>;
 const entries = JSON.parse(
   readFileSync(new URL("../spec/images/src/themes.json", import.meta.url), "utf8"),
 ) as Entry[];
@@ -73,8 +69,17 @@ describe("F7.3 logo files", () => {
 });
 
 describe("F1.6 built-in themes pass defineTheme", () => {
-  // enabled at merge with T1: src/theme.ts is still T0's throwing placeholder here
-  it.todo("each built-in theme input goes through the real defineTheme without error");
+  it("each built-in theme is a frozen defineTheme result of its input", () => {
+    for (const [theme, input] of [
+      [majordome, majordomeInput],
+      [dreamStudio, dreamStudioInput],
+    ] as const) {
+      expect(theme.id).toBe(input.id);
+      expect(theme.colors).toEqual(input.colors);
+      expect(Object.isFrozen(theme)).toBe(true);
+    }
+    expect(dreamStudio.logo).toBeUndefined();
+  });
 });
 
 describe("samples", () => {
