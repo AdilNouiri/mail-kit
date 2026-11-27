@@ -1,7 +1,7 @@
 import { isAllowedUrl, type UrlScheme } from "../escape.ts";
 import { type Block, ContentError, type MailContent, type RichText } from "../types.ts";
 
-const URL_SCHEMES: readonly UrlScheme[] = ["https:", "mailto:"];
+const URL_SCHEMES: readonly UrlScheme[] = ["https:", "mailto:", "http:loopback"];
 const CODE_PATTERN = /^[A-Z0-9]{1,12}$/;
 
 function length(text: string): number {
@@ -32,7 +32,11 @@ function checkText(
 
 function checkUrl(value: unknown, field: string, blockIndex: number): void {
   if (!isString(value) || !isAllowedUrl(value, URL_SCHEMES)) {
-    throw new ContentError(field, `${field} must be an absolute https: or mailto: URL`, blockIndex);
+    throw new ContentError(
+      field,
+      `${field} must be an absolute https: or mailto: URL, or an http: URL on localhost, 127.0.0.1 or [::1]`,
+      blockIndex,
+    );
   }
 }
 

@@ -78,3 +78,83 @@ describe("isAllowedUrl", () => {
     expect(isAllowedUrl("mailto:alice.martin@example.com", ["https:"])).toBe(false);
   });
 });
+
+describe("F2.9 isAllowedUrl with loopback http:", () => {
+  const content = ["https:", "mailto:", "http:loopback"] as const;
+
+  it.each([
+    "http://localhost:8787/auth/verify?token=EXAMPLE-TOKEN-1234",
+    "http://127.0.0.1:8787/auth/verify?token=EXAMPLE-TOKEN-1234#top",
+    "http://[::1]:8787/auth/verify?token=EXAMPLE-TOKEN-1234",
+    "http://localhost/",
+    "http://localhost",
+    "http://localhost?next=%2Fhome",
+    "http://localhost#top",
+    "http://localhost:8787/@me",
+    "http://LOCALHOST:8787/v",
+    "http://LocalHost/v",
+    "HTTP://localhost:8787/v",
+    "http://localhost:/",
+    "http://127.0.0.1:0080/",
+  ])("accepts %s", (url) => {
+    expect(isAllowedUrl(url, content)).toBe(true);
+  });
+
+  it.each([
+    ["lookalike", "http://localhost.example.com/"],
+    ["lookalike", "http://127.0.0.1.example.com/"],
+    ["lookalike", "http://localhost./"],
+    ["lookalike", "http://127.0.0.1./"],
+    ["lookalike", "http://mylocalhost/"],
+    ["other address", "http://127.0.0.2/"],
+    ["other address", "http://[::2]/"],
+    ["other address", "http://0.0.0.0/"],
+    ["other address", "http://example.com/"],
+    ["shorthand", "http://127.1/"],
+    ["shorthand", "http://0x7f.0.0.1/"],
+    ["shorthand", "http://0177.0.0.1/"],
+    ["shorthand", "http://2130706433/"],
+    ["shorthand", "http://[0:0:0:0:0:0:0:1]/"],
+    ["shorthand", "http://[::ffff:127.0.0.1]/"],
+    ["shorthand", "http://[::1%25lo0]/"],
+    ["percent-encoded host", "http://%6Cocalhost/"],
+    ["full-width host", "http://ｌｏｃａｌｈｏｓｔ/"],
+    ["userinfo", "http://localhost@evil.example/"],
+    ["userinfo", "http://evil.example@localhost/"],
+    ["userinfo", "http://user:pass@localhost:8787/"],
+    ["userinfo", "http://@localhost/"],
+    ["userinfo", "http://:@localhost/"],
+    ["userinfo", "http://LOCALHOST@127.0.0.1/"],
+    ["backslash", "http:\\\\localhost\\v"],
+    ["backslash", "http://localhost\\@evil.example/"],
+    ["missing slashes", "http:localhost/"],
+    ["missing slashes", "http:/localhost/"],
+    ["extra slash", "http:///localhost/"],
+    ["bad port", "http://localhost:99999/"],
+    ["bad port", "http://localhost:87a/"],
+    ["bad port", "http://[::1]x/"],
+    ["whitespace", "http://localhost:8787/ "],
+    ["whitespace", "http://local\thost/"],
+    ["https scheme", "https:localhost/"],
+    ["no host", "http://"],
+  ])("refuses %s %j", (_kind, url) => {
+    expect(isAllowedUrl(url, content)).toBe(false);
+  });
+
+  it("refuses loopback http: without the loopback scheme value", () => {
+    expect(isAllowedUrl("http://localhost:8787/v", ["https:", "mailto:"])).toBe(false);
+    expect(isAllowedUrl("http://localhost:8787/v", ["https:"])).toBe(false);
+  });
+
+  it("leaves https: and mailto: to their own scheme values", () => {
+    expect(isAllowedUrl("https://example.com/", ["http:loopback"])).toBe(false);
+    expect(isAllowedUrl("mailto:alice.martin@example.com", ["http:loopback"])).toBe(false);
+    expect(isAllowedUrl("https://localhost/", ["https:"])).toBe(true);
+  });
+
+  it("refuses the other schemes with loopback hosts", () => {
+    for (const url of ["ftp://localhost/", "ws://localhost/", "javascript://localhost/%0a1"]) {
+      expect(isAllowedUrl(url, content)).toBe(false);
+    }
+  });
+});

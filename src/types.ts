@@ -1,4 +1,4 @@
-export const VERSION = "0.1.0";
+export const VERSION = "0.1.1";
 
 export type Lang = "fr" | "en";
 
@@ -118,7 +118,11 @@ export type BuiltInThemeId = "majordome" | "dream-studio";
 export type Inline =
   | string
   | { readonly bold: string }
-  | { readonly text: string; readonly url: string };
+  | {
+      readonly text: string;
+      /** As a button's `url`. */
+      readonly url: string;
+    };
 
 export type RichText = string | readonly Inline[];
 
@@ -135,7 +139,10 @@ export interface ParagraphBlock {
 export interface ButtonBlock {
   readonly type: "button";
   readonly label: string;
-  /** `https:` or `mailto:`. */
+  /**
+   * `https:` or `mailto:`, or `http:` on the host `localhost`, `127.0.0.1` or `[::1]` for
+   * local development, without userinfo (F2.9).
+   */
   readonly url: string;
   /** Adds the fallback link under the button; default true. */
   readonly fallback?: boolean;
@@ -144,6 +151,7 @@ export interface ButtonBlock {
 export interface LinkBlock {
   readonly type: "link";
   readonly lead: string;
+  /** As a button's `url`. */
   readonly url: string;
 }
 

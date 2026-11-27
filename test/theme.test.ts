@@ -277,6 +277,25 @@ describe("F1 edge cases and the other rules of 4.1", () => {
   });
 });
 
+describe("F2.9 theme URLs stay https: only, loopback http: included (decision 13)", () => {
+  const loopback = ["http://localhost:8787", "http://127.0.0.1:8787", "http://[::1]:8787"];
+
+  it.each(loopback)("rejects a logo on %s", (origin) => {
+    expect(pathOf(mutate((input) => (input.logo.url = `${origin}/logo.png`)))).toBe("logo.url");
+  });
+
+  it.each(loopback)("rejects a web font on %s", (origin) => {
+    const font = { family: "Gloock", url: `${origin}/g.woff2`, weight: 400 };
+    expect(pathOf(mutate((input) => (input.webFonts = [font])))).toBe("webFonts[0].url");
+  });
+
+  it.each(loopback)("rejects a footer link on %s", (origin) => {
+    expect(pathOf(mutate((input) => (input.footer.link.url = `${origin}/privacy`)))).toBe(
+      "footer.link.url",
+    );
+  });
+});
+
 describe("F1.6 shape of the two real themes (the built-in modules are tested by T4)", () => {
   it.each(raw.map((theme) => [theme.id, theme] as const))("%s passes", (_id, theme) => {
     expect(() => defineTheme(toInput(theme))).not.toThrow();

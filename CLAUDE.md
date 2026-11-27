@@ -29,7 +29,8 @@ the reference; read `spec/README.md` first.
   and the phone width; clients that drop it still get a correct light layout.
 - Every rendered mail stays under 60 KB (Gmail clips at 102 KB).
 - Every text is escaped with `src/escape.ts`; there is no raw-html block. Only `https:`
-  and `mailto:` URLs are accepted.
+  and `mailto:` URLs are accepted, plus loopback `http:` in content blocks (F2.9); theme
+  URLs are `https:` only.
 - Text between tags uses `escapeHtml`; every attribute value (`href`, `alt`, `aria-label`,
   `title`) uses `escapeAttribute`.
 - Majordome bans the `style` attribute in its JSX: mail-kit returns strings, so a

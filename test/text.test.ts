@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { renderMail } from "../src/render-mail.ts";
 import { renderText } from "../src/text.ts";
-import type { Lang, MailContent, Theme } from "../src/types.ts";
+import { majordome } from "../src/themes/majordome.ts";
+import { ContentError, type Lang, type MailContent, type Theme } from "../src/types.ts";
 
 function theme(lang: Lang): Theme {
   return {
@@ -128,5 +130,45 @@ describe("renderText", () => {
     expect(renderText(theme("en"), c)).toContain("Code: 482 913\n");
     expect(fr).toContain("\n---\n");
     expect(fr).toContain("\n--\nCustom reason.\n");
+  });
+});
+
+describe("F2.9 loopback http: in the text part", () => {
+  // Short addresses: the lines then fit in 76 columns, so wrapping does not differ.
+  const https = "https://app.example.com/v?t=EXAMPLE-TOKEN-1234";
+
+  function withUrl(url: string): MailContent {
+    return {
+      subject: "s",
+      blocks: [
+        { type: "button", label: "Me connecter", url },
+        { type: "link", lead: "Or open", url },
+        { type: "paragraph", content: ["See ", { text: "the page", url }, "."] },
+      ],
+    };
+  }
+
+  it.each([
+    "http://localhost:8787/v?t=EXAMPLE-TOKEN-1234",
+    "http://127.0.0.1:8787/v?t=EXAMPLE-TOKEN-1234#top",
+    "http://[::1]:8787/v?t=EXAMPLE-TOKEN-1234",
+    "http://LOCALHOST:8787/v",
+  ])("%s renders like an https: URL through renderMail", (url) => {
+    const { text } = renderMail(majordome, withUrl(url));
+    expect(text).toBe(renderMail(majordome, withUrl(https)).text.split(https).join(url));
+    const lines = text.split("\n");
+    expect(lines).toContain(`Me connecter : ${url}`);
+    expect(lines).toContain(`Or open ${url}`);
+    expect(text).toContain(`the page (${url})`);
+  });
+
+  it.each([
+    "http://localhost.example.com/",
+    "http://localhost./",
+    "http://127.1/",
+    "http://localhost@evil.example/",
+    "http://evil.example@localhost/",
+  ])("%s throws a ContentError before any text part", (url) => {
+    expect(() => renderMail(majordome, withUrl(url))).toThrow(ContentError);
   });
 });
