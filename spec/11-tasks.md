@@ -147,8 +147,9 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T11;
   mailbox allow-list, the 429 retry; then the real sends and the Gmail web, Apple Mail
   (sandbox) and Outlook screenshots, sent to CCS with the verification report.
   Note (27 Nov 2026): T11 runs before T7 (`decisions/T6.md` D5) and writes the `0.1.1`
-  release notes in `CHANGELOG.md` and the version bump in `package.json`. T7 rebases on
-  the integration branch once T11 is merged there, then writes its entry in
+  release notes in `CHANGELOG.md` and the version bump in `package.json`. The integration
+  branch is merged into the task branch (by the integrator) after T11 merges, before
+  T7's own merge; T7 writes its entry in
   `CHANGELOG.md` as an `## Unreleased` section above T11's `## 0.1.1` (the mail clients
   checked belong to the next release, since `0.1.1` ships without them), and changes
   neither the `0.1.1` section nor the version. In `package.json`, T7 only adds the
