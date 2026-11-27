@@ -15,6 +15,9 @@
   - Consumer: the Worker and Node fixtures import the built `dist/` (F6).
   - Real clients (M2): test sends checked in Gmail web, Apple Mail in the sandbox and
     Outlook (F8); not part of the check command.
+- **CI**: `.github/workflows/check.yml` (T8) runs `npm run check` on every push and pull
+  request, after `npm ci` and `npx playwright-core install --with-deps
+  chromium-headless-shell` (the pinned `playwright-core` 1.65.1 of `package.json`).
 - **Test data**: the sample mails of `src/samples.ts` and fixtures with `example.com`
   addresses and fictitious tokens (`EXAMPLE-TOKEN-1234`); never a real address or token.
 - **System and GUI tests**: Apple Mail runs only through `sandbox run -- <command>`

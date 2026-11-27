@@ -128,6 +128,11 @@ Acceptance criteria:
 6. **Accessible.** Given any rendered mail, then `<html>` has the theme's `lang`, every
    layout table has `role="presentation"`, the logo `<img>` has `alt=""` (the wordmark
    beside it is text), the heading is an `<h1>`, and every text colour pair meets 4.5:1.
+7. **Long code fits a phone.** Given a code block of 12 characters with `group: 1` (23
+   displayed characters, the longest allowed), when it renders at 390 px in headless
+   Chromium, then the code stays on one line inside the card and `scrollWidth` equals
+   390; a code of at most 12 displayed characters (the `482 913` sample) keeps 30 px with
+   8 px letter spacing, so the mockups do not change.
 
 Edge cases and errors:
 

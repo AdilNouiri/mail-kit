@@ -31,7 +31,7 @@ Every mail has the same frame, top to bottom:
 Blocks: heading 28/34 px display font; paragraph 16/24 px `textSoft`; button 16 px
 semibold, 14 × 28 px padding, `buttonRadius`; fallback link 13/20 px `muted` with the
 address in `link`, broken anywhere; code 30 px monospace, 8 px letter spacing, centred in
-a `subtle` box; note 14/21 px in a `subtle` box with a 3 px `accent` left border; divider
+a `subtle` box (smaller, set inline, for a code over 12 displayed characters: F4.7); note 14/21 px in a `subtle` box with a 3 px `accent` left border; divider
 1 px `subtle` line with 24 px above and below.
 
 ## 5.2 Majordome: magic-link mail
