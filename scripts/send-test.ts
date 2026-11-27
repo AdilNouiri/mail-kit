@@ -1,4 +1,3 @@
-import { pathToFileURL } from "node:url";
 import { renderMail } from "../src/render-mail.ts";
 import { samples } from "../src/samples.ts";
 import { builtInThemes } from "../src/themes/index.ts";
@@ -12,6 +11,7 @@ export interface SendTestInput {
   to: string;
   lang: string;
   allowAny: boolean;
+  unknown: string[];
 }
 
 export interface SendTestEnv {
@@ -32,14 +32,26 @@ export interface SendTestResult {
 }
 
 export function parseArgs(argv: readonly string[]): SendTestInput {
-  const input: SendTestInput = { theme: "", sample: "", to: "", lang: "fr", allowAny: false };
+  const input: SendTestInput = {
+    theme: "",
+    sample: "",
+    to: "",
+    lang: "fr",
+    allowAny: false,
+    unknown: [],
+  };
+  const valued = {
+    "--theme": "theme",
+    "--sample": "sample",
+    "--to": "to",
+    "--lang": "lang",
+  } as const;
   for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
+    const arg = argv[i] as string;
     if (arg === "--allow-any") input.allowAny = true;
-    else if (arg === "--theme") input.theme = argv[++i] ?? "";
-    else if (arg === "--sample") input.sample = argv[++i] ?? "";
-    else if (arg === "--to") input.to = argv[++i] ?? "";
-    else if (arg === "--lang") input.lang = argv[++i] ?? "";
+    else if (Object.hasOwn(valued, arg)) {
+      input[valued[arg as keyof typeof valued]] = argv[++i] ?? "";
+    } else input.unknown.push(arg.split("=")[0] as string);
   }
   return input;
 }
@@ -61,6 +73,9 @@ export async function sendTest(
   env: SendTestEnv,
   deps: SendTestDeps,
 ): Promise<SendTestResult> {
+  if (input.unknown.length > 0) {
+    return { code: 2, stderr: `send-test: unknown option ${input.unknown[0]}` };
+  }
   const missing: string[] = [];
   if (!env.RESEND_API_KEY) missing.push("RESEND_API_KEY");
   if (!env.MAIL_KIT_TEST_FROM) missing.push("MAIL_KIT_TEST_FROM");
@@ -69,6 +84,9 @@ export async function sendTest(
   if (!input.sample) missing.push("--sample");
   if (missing.length > 0) {
     return { code: 2, stderr: `send-test: missing ${missing.join(", ")}` };
+  }
+  if (!/^[!-~]+$/.test(env.RESEND_API_KEY as string)) {
+    return { code: 2, stderr: "send-test: RESEND_API_KEY is malformed" };
   }
   if (!Object.hasOwn(builtInThemes, input.theme)) {
     return { code: 2, stderr: `send-test: unknown theme ${input.theme}` };
@@ -107,10 +125,15 @@ export async function sendTest(
       body,
     });
 
-  let response = await post();
-  if (response.status === 429) {
-    await deps.sleep(retryAfterMs(response.headers.get("retry-after")));
+  let response: Response;
+  try {
     response = await post();
+    if (response.status === 429) {
+      await deps.sleep(retryAfterMs(response.headers.get("retry-after")));
+      response = await post();
+    }
+  } catch {
+    return { code: 1, stderr: "send-test: the request to Resend failed" };
   }
   if (!response.ok) {
     return { code: 1, stderr: `send-test: Resend answered ${response.status}` };
@@ -122,7 +145,7 @@ export async function sendTest(
   };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (import.meta.main) {
   const result = await sendTest(parseArgs(process.argv.slice(2)), process.env, {
     fetch,
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),

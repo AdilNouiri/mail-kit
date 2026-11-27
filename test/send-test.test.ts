@@ -117,7 +117,65 @@ describe("F8 mailbox allow-list", () => {
   });
 });
 
+describe("hardening", () => {
+  it("rejects a key with a newline or NUL up front, never printing it", async () => {
+    for (const bad of [`${KEY}\nx`, `${KEY}\0`, `${KEY} x`]) {
+      const d = deps([]);
+      const result = await sendTest(parseArgs(args), { ...env, RESEND_API_KEY: bad }, d.deps);
+      expect(result.code).toBe(2);
+      expect(result.stderr).toContain("RESEND_API_KEY");
+      expect(`${result.stdout}${result.stderr}`).not.toContain(KEY);
+      expect(d.calls).toHaveLength(0);
+    }
+  });
+
+  it("turns a fetch failure into a fixed message, exit 1, without its text", async () => {
+    const boom = (async () => {
+      throw new TypeError(`Headers.append: "Bearer ${KEY}" is an invalid header value`);
+    }) as unknown as typeof fetch;
+    const result = await sendTest(parseArgs(args), env, { fetch: boom, sleep: async () => {} });
+    expect(result.code).toBe(1);
+    expect(`${result.stdout}${result.stderr}`).not.toContain(KEY);
+    expect(result.stderr).not.toContain("Headers");
+  });
+
+  it("also catches a failure of the retried request", async () => {
+    let n = 0;
+    const flaky = (async () => {
+      if (n++ === 0) return json(429, {}, { "retry-after": "1" });
+      throw new Error(KEY);
+    }) as unknown as typeof fetch;
+    const result = await sendTest(parseArgs(args), env, { fetch: flaky, sleep: async () => {} });
+    expect(result.code).toBe(1);
+    expect(`${result.stdout}${result.stderr}`).not.toContain(KEY);
+  });
+
+  it.each([
+    [["--bogus"], "--bogus"],
+    [["--to=claude@example.com"], "--to"],
+    [["stray"], "stray"],
+  ])("exits 2 naming the unknown option %j and sends nothing", async (extra, name) => {
+    const d = deps([]);
+    const result = await sendTest(parseArgs([...args, ...extra]), env, d.deps);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain(name);
+    expect(d.calls).toHaveLength(0);
+  });
+});
+
 describe("F8 429 retry", () => {
+  it.each([
+    ["999", 120000],
+    [null, 1000],
+    ["abc", 1000],
+    ["0", 1000],
+  ])("retry-after %s waits %i ms", async (header, ms) => {
+    const headers: Record<string, string> = header === null ? {} : { "retry-after": header };
+    const d = deps([json(429, {}, headers), json(200, { id: "m" })]);
+    await sendTest(parseArgs(args), env, d.deps);
+    expect(d.sleeps).toEqual([ms]);
+  });
+
   it("waits retry-after once, then succeeds", async () => {
     const d = deps([json(429, {}, { "retry-after": "3" }), json(200, { id: "msg_2" })]);
     const result = await sendTest(parseArgs(args), env, d.deps);
