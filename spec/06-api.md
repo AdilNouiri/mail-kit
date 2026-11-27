@@ -40,4 +40,4 @@ const { subject, html, text } = renderMail(majordome, {
 | Command | Input | Output | Errors |
 | --- | --- | --- | --- |
 | `npm run preview` | — | `preview/` (F5) | exit 1 with the install command when no headless Chromium |
-| `npm run send-test -- --theme <id> --sample <name> --to <address> [--allow-any]` | `RESEND_API_KEY`, `MAIL_KIT_TEST_FROM` in the environment | the Resend message id | exit 2 on a missing input; exit 1 on a non-2xx answer, with the status only (F8) |
+| `npm run send-test -- --theme <id> --sample <name> --to <address> [--lang fr\|en] [--allow-any]` (`--lang` defaults to `fr`) | `RESEND_API_KEY`, `MAIL_KIT_TEST_FROM` and `MAIL_KIT_TEST_MAILBOXES` (the allow-list: Claude-owned addresses, comma-separated, case-insensitive; empty refuses every `--to` unless `--allow-any`) in the environment | the Resend message id | exit 2 on an unknown option, a missing input, a malformed `RESEND_API_KEY` (the key is never printed), an unknown theme, sample or `--lang`, or a `--to` outside the allow-list without `--allow-any`; exit 1 on a non-2xx answer, with the status only (F8) |

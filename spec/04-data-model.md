@@ -55,13 +55,14 @@ A tagged union on `type`:
 | --- | --- | --- |
 | `heading` | `text` (1 to 120 characters) | One `<h1>` look; more than one heading is allowed but discouraged. |
 | `paragraph` | `content`: string or `Inline[]` | |
-| `button` | `label` (1 to 40), `url` (`https:`/`mailto:`), `fallback` (boolean, default true) | Followed by a fallback link unless `fallback: false`. |
-| `link` | `lead` (string), `url` | A small line with a lead and the address in full. |
+| `button` | `label` (1 to 40), `url` (`https:`/`mailto:`, or loopback `http:`, F2.9), `fallback` (boolean, default true) | Followed by a fallback link unless `fallback: false`. |
+| `link` | `lead` (string), `url` (as `button`) | A small line with a lead and the address in full. |
 | `code` | `code` (1 to 12 characters, `[A-Z0-9]`), `group` (0 to 6, default 0) | One-time code; `group` inserts a space every n characters for display only. |
 | `note` | `content`: string or `Inline[]` | Tinted box with the accent border. |
 | `divider` | — | A 1 px line in `muted` at 30 % (`subtle` colour). |
 
-`Inline` is a string, `{ bold: string }` or `{ text: string, url: string }`.
+`Inline` is a string, `{ bold: string }` or `{ text: string, url: string }`; its `url`
+follows the `button` rule.
 
 ## 4.4 RenderedMail
 

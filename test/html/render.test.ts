@@ -248,6 +248,94 @@ describe("F2.4 URLs checked", () => {
   });
 });
 
+describe("F2.9 loopback http: accepted for local development", () => {
+  const loopback = [
+    "http://localhost:8787/auth/verify?token=EXAMPLE-TOKEN-1234",
+    "http://127.0.0.1:8787/auth/verify?token=EXAMPLE-TOKEN-1234#top",
+    "http://[::1]:8787/auth/verify?token=EXAMPLE-TOKEN-1234",
+    "http://LOCALHOST:8787/v",
+  ];
+
+  function withUrl(url: string): MailContent {
+    return mail([
+      { type: "button", label: "Me connecter", url },
+      { type: "link", lead: "Or open", url },
+      { type: "paragraph", content: ["See ", { text: "the page", url }, "."] },
+    ]);
+  }
+
+  it.each(loopback)("%s renders like an https: URL", (url) => {
+    const expected = renderHtml(majordomeLike, withUrl(TOKEN_URL)).split(TOKEN_URL).join(url);
+    expect(renderHtml(majordomeLike, withUrl(url))).toBe(expected);
+  });
+
+  it.each(loopback)("%s is the button href, its fallback link, the link and inline href", (url) => {
+    const html = renderHtml(majordomeLike, withUrl(url));
+    expect(html.match(/<v:roundrect [^>]*>/)?.[0]).toContain(`href="${url}"`);
+    expect(html).toContain(`<a href="${url}" class="mk-button"`);
+    inOrder(html, [
+      'class="mk-button"',
+      "Le bouton ne marche pas ? Copiez cette adresse dans votre navigateur :<br>",
+      `>${url}</a>`,
+      "Or open",
+      `>${url}</a>`,
+      `href="${url}"`,
+      ">the page</a>",
+    ]);
+  });
+
+  const refused = [
+    "http://localhost.example.com/",
+    "http://127.0.0.1.example.com/",
+    "http://localhost./",
+    "http://127.0.0.2/",
+    "http://[::2]/",
+    "http://127.1/",
+    "http://0x7f.0.0.1/",
+    "http://[0:0:0:0:0:0:0:1]/",
+    "http://localhost@evil.example/",
+    "http://evil.example@localhost/",
+  ];
+
+  it.each(refused)("button url %s throws a ContentError with the block index", (url) => {
+    const error = thrown(() =>
+      renderMail(
+        majordomeLike,
+        mail([
+          { type: "heading", text: "H" },
+          { type: "button", label: "Go", url },
+        ]),
+      ),
+    );
+    expect(error.blockIndex).toBe(1);
+    expect(error.field).toBe("url");
+    expect(error.message).toContain("http: URL on localhost, 127.0.0.1 or [::1]");
+  });
+
+  it.each(refused)("link url %s throws a ContentError with the block index", (url) => {
+    const error = thrown(() =>
+      renderMail(majordomeLike, mail([{ type: "divider" }, { type: "link", lead: "L", url }])),
+    );
+    expect(error.blockIndex).toBe(1);
+    expect(error.field).toBe("url");
+  });
+
+  it.each(refused)("inline url %s throws a ContentError with the block index", (url) => {
+    const error = thrown(() =>
+      renderMail(
+        majordomeLike,
+        mail([
+          { type: "divider" },
+          { type: "divider" },
+          { type: "paragraph", content: [{ text: "x", url }] },
+        ]),
+      ),
+    );
+    expect(error.blockIndex).toBe(2);
+    expect(error.field).toBe("content");
+  });
+});
+
 describe("F2.5 button with fallback link", () => {
   it("outputs a bulletproof button and a VML roundrect for Outlook", () => {
     const html = renderHtml(majordomeLike, magicLink);

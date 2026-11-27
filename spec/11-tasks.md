@@ -3,7 +3,7 @@
 T0 runs first and alone. Two tasks with no dependency between them never modify the same
 file.
 
-Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10.
+Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T11; 7 = T7; 8 = T12.
 
 | Task | Wave |
 | --- | --- |
@@ -14,10 +14,12 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10.
 | T4 | 2 |
 | T5 | 3 |
 | T6 | 4 |
-| T7 | 5 |
+| T7 | 7 |
 | T8 | 2 |
 | T9 | 3 |
 | T10 | 5 |
+| T11 | 6 |
+| T12 | 8 |
 
 ### T0 — Skeleton, tooling and frozen interfaces
 
@@ -135,8 +137,8 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10.
 
 ### T7 — Test sends and real-client checks
 
-- **Depends on**: T6
-- **Files**: `scripts/send-test.ts`, `test/send-test.test.ts`, `CHANGELOG.md`, `spec/decisions/T7.md`
+- **Depends on**: T6, T10, T11
+- **Files**: `scripts/send-test.ts`, `test/send-test.test.ts`, `CHANGELOG.md`, `package.json`, `spec/decisions/T7.md`
 - **Agent**: `tester` (sonnet, effort medium: verification against criteria)
 - **Priority**: medium
 - **Estimate**: M
@@ -145,7 +147,40 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10.
 - **Content**: `send-test` with an injected `fetch` (unit-tested without network), the
   mailbox allow-list, the 429 retry; then the real sends and the Gmail web, Apple Mail
   (sandbox) and Outlook screenshots, sent to CCS with the verification report.
-- **Criterion**: F8.1 to F8.6 checked; report sent; check green.
+  Note (27 Nov 2026): T11 runs before T7 (`decisions/T6.md` D5) and writes the `0.1.1`
+  release notes in `CHANGELOG.md` and the version bump in `package.json`. The integration
+  branch is merged into the task branch (by the integrator) after T11 merges, before
+  T7's own merge; T7 writes its entry in
+  `CHANGELOG.md` as an `## Unreleased` section above T11's `## 0.1.1` (the mail clients
+  checked belong to the next release, since `0.1.1` ships without them), and changes
+  neither the `0.1.1` section nor the version. In `package.json`, T7 only adds the
+  `send-test` script line that `06-api.md` requires.
+  Note (27 Nov 2026): the Gmail web, Apple Mail and Outlook checks (F8.3 to F8.5) move to
+  T12: Claude's vault mailbox (Cloudflare Email Routing) has no web client and no IMAP
+  (`decisions/T7.md` D7, assumption 3). T7 keeps the script, its tests, the real sends
+  and F8.1, F8.2 and F8.6.
+- **Criterion**: F8.1, F8.2 and F8.6 checked; F8.3 to F8.5 moved to T12; report sent;
+  check green.
+
+### T12 — Real-client checks
+
+- **Depends on**: T7
+- **Files**: `CHANGELOG.md`, `spec/decisions/T12.md`, `test/clients/` (any screenshot recipe it needs)
+- **Agent**: `tester` (sonnet, effort medium: verification against criteria)
+- **Priority**: medium
+- **Estimate**: M
+- **Covers**: F8
+- **Prerequisites**: P3, P4
+- **Content**: F8.3 to F8.5 over the `send-test` sends of every built-in theme × sample:
+  Gmail web on Claude's Gmail mailbox (P4); Apple Mail inside the sandbox, with the
+  Outlook.com mailbox of P3 added as an IMAP account; Outlook.com web on the same P3
+  mailbox. Screenshots in light and dark where the client offers both, sent to CCS with
+  the verification report; any recipe (sandbox `sandbox.json`, screenshot script) lives
+  under `test/clients/`. `CHANGELOG.md`: the clients checked go into T7's
+  `## Unreleased` section (F8.6). If P4 stays open, the alternative for F8.3 is decided
+  and recorded in `spec/decisions/T12.md`; F8.3 is never marked passed without Gmail.
+- **Criterion**: F8.3, F8.4 and F8.5 checked with screenshots; report sent; F8.6's
+  `CHANGELOG.md` line lists the clients checked; check green.
 
 ### T8 — Long codes on phones and the CI workflow (light batch)
 
@@ -217,3 +252,43 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10.
   never in CI.
 - **Criterion**: `npm run test:node22` passes and prints `v22.23.5` from
   `process.version` in the fixture's run; `heavy npm run check` green.
+
+### T11 — Loopback `http:` links and release 0.1.1
+
+- **Depends on**: T6, T10
+- **Files**: `src/escape.ts`, `src/html/check.ts`, `src/types.ts`, `test/escape.test.ts`, `test/html/render.test.ts`, `test/text.test.ts`, `test/theme.test.ts`, `CLAUDE.md`, `CHANGELOG.md`, `package.json`, `package-lock.json`, `README.md`, `spec/decisions/T11.md`
+- **Agent**: `implementer` (opus, effort high: security, URL validation)
+- **Priority**: high
+- **Estimate**: S
+- **Covers**: F2
+- **Content**: found by the Majordome session adopting v0.1.0: its magic link is built
+  from the request origin, `http://localhost:<port>` or `http://127.0.0.1:<port>` under
+  `wrangler dev` and its Playwright e2e harness, so every button and link block threw a
+  `ContentError` and its local sign-in answered 500 (`decisions/T6.md` D5, decision 13).
+  - Content URLs (button, link block, inline link) accept loopback `http:` exactly as
+    F2.9 says; `src/theme.ts` keeps `https:` only and is not changed: extend
+    `isAllowedUrl` so its existing callers keep their meaning (for example a separate
+    scheme value used only by `src/html/check.ts`), and update the `ContentError`
+    message. The text part follows through `renderHtml`'s checks
+    (`src/render-mail.ts`); test it anyway.
+  - Tests: every accepted and refused URL of F2.9 in `test/escape.test.ts`, the button
+    (`href` and fallback link), the link block and an inline link in
+    `test/html/render.test.ts` and `test/text.test.ts`, and a loopback logo,
+    web font and footer link still refused in `test/theme.test.ts`.
+  - `src/types.ts`: the `url` doc comments of the button, link and inline link, and
+    `VERSION` to `0.1.1` (`scripts/release.ts` refuses a `VERSION` that differs from
+    `package.json`); `package.json` and `package-lock.json` (`npm version 0.1.1
+    --no-git-tag-version`); `README.md`'s install line to `#v0.1.1`.
+  - `CLAUDE.md`: the URL rule line becomes "Only `https:` and `mailto:` URLs are accepted,
+    plus loopback `http:` in content blocks (F2.9); theme URLs are `https:` only."
+  - `CHANGELOG.md`: a `## 0.1.1` section above `## 0.1.0` whose release notes cover the
+    loopback change only (loopback `http:` in content, the lookalikes and userinfo
+    refused, theme URLs unchanged, mail clients checked: none new); T7 adds its own
+    `## Unreleased` section above it later.
+  - The tag `v0.1.1` itself is made by the loop from `main` after the integration pull
+    request merges, with `scripts/release.ts`, as T6 describes (`decisions/T6.md` D2);
+    this task does not tag.
+- **Criterion**: F2.9 tested with every lookalike, userinfo, shorthand and uppercase case
+  it names, and F2.4 still tested; theme URLs still refuse `http:`; `heavy npm run check`
+  green; `CHANGELOG.md` has a `0.1.1` entry; `VERSION`, `package.json` and
+  `package-lock.json` say `0.1.1`.
