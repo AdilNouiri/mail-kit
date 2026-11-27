@@ -25,7 +25,7 @@ contents; mail-kit owns the built-in themes.
 | `colors.subtle` | hex | required | Fill of code and note blocks; `text` and `textSoft` 4.5:1 on it. |
 | `colors.link` | hex | required, 4.5:1 on `card` | Links in the card. |
 | `colors.footerText` | hex | required, 4.5:1 on `canvas` | Footer text and link. |
-| `dark.canvas`, `dark.card`, `dark.text`, `dark.textSoft`, `dark.muted`, `dark.subtle`, `dark.link` | hex | required, same contrast rules | The same roles under `prefers-color-scheme: dark`. Brand, accent and their "on" colours stay, so `onAccent` on `accent` is checked once. |
+| `dark.canvas`, `dark.card`, `dark.text`, `dark.textSoft`, `dark.muted`, `dark.subtle`, `dark.link` | hex | required, same contrast rules; `dark.muted` also 4.5:1 on `dark.canvas`, since it colours the footer in dark mode | The same roles under `prefers-color-scheme: dark`. Brand, accent and their "on" colours stay, so `onAccent` on `accent` is checked once. |
 | `fonts.display` | string | required, ends in a generic family | Heading and wordmark stack. |
 | `fonts.displayWeight` | 400, 600 or 700 | default 700 | Heading weight. |
 | `fonts.text` | string | required, ends in a generic family | Body stack. |
