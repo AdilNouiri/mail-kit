@@ -12,12 +12,20 @@
   - Render: headless Chromium screenshots of the preview at both sizes and both schemes;
     F4.3 and F4.4 read computed styles and `scrollWidth` in the page; F2.7 compares with
     the mockups.
-  - Consumer: the Worker and Node fixtures import the built `dist/` (F6).
+  - Consumer: the Worker and Node fixtures import the built `dist/` (F6); the Node
+    fixture runs on the Mac's Node 24 and again on Node 22 (F6.3, T10).
   - Real clients (M2): test sends checked in Gmail web, Apple Mail in the sandbox and
     Outlook (F8); not part of the check command.
-- **CI**: `.github/workflows/check.yml` (T8) runs `npm run check` on every push and pull
-  request, after `npm ci` and `npx playwright-core install --with-deps
-  chromium-headless-shell` (the pinned `playwright-core` 1.65.1 of `package.json`).
+- **Where each test runs** (decision 12): GitHub CI runs only the quick check, one Linux
+  job of `.github/workflows/check.yml` (T9) on pull requests and `workflow_dispatch`,
+  never on push: `npm ci`, `npx biome ci`, `npx tsc --noEmit`, and `npx vitest run`
+  with `--exclude` for the browser files `test/lint/browser.test.ts`,
+  `test/lint/code-width.test.ts`, `test/mockup-match.test.ts` and
+  `test/preview.test.ts`. Those files, the Worker and Node consumer fixtures (they build
+  and pack `dist/`), the Node 22 run of the Node fixture (T10), `npm run preview` and the
+  mockup comparison run only on the Mac, in `heavy npm run check`: `open-pr` before the
+  `ci` label, the integrator before each push of `claude/mail-kit`, and `after-merge`.
+  No browser is installed on GitHub.
 - **Test data**: the sample mails of `src/samples.ts` and fixtures with `example.com`
   addresses and fictitious tokens (`EXAMPLE-TOKEN-1234`); never a real address or token.
 - **System and GUI tests**: Apple Mail runs only through `sandbox run -- <command>`

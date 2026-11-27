@@ -36,6 +36,16 @@
 11. **Built-in fonts fall back by design.** Gmail and Outlook ignore web fonts, so every
     stack ends in safe families (Georgia, system sans-serif); the look must hold with the
     fallback, which the Gmail check of F8.3 shows.
+12. **GitHub CI runs only the quick check; browser and consumer tests run on the Mac.**
+    The CI rule (`rules/code/ci-workflows.md` of `claude-memory`) allows one Linux job on
+    pull requests and `workflow_dispatch`, never on push, with lint, typecheck and unit
+    tests only, so GitHub minutes stay within the plan. T8's first workflow ran the whole
+    check with a Playwright install on push; T9 replaces it. The browser tests (F2.7,
+    F4.3, F4.4, F4.7, the preview), the consumer fixtures and the Node 22 run (T10) run in
+    `heavy npm run check` on the Mac (open-pr, the integrator, after-merge). The
+    workflow has `paths-ignore` for Markdown and `spec/`, so it is not a required check
+    and needs no copy mode. Rejected: Playwright on GitHub (heavy, against the rule); a
+    second job on Node 22 (light CI is one job).
 
 ## 12.2 Assumptions
 

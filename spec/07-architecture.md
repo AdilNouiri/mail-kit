@@ -29,7 +29,7 @@ The consumer sends the returned strings with its own sender. `src/` never import
 | Lint and format | Biome | 2.6.9 (npm, 27 Nov 2026) | Same as Majordome's app. |
 | Screenshots | Playwright's `chromium-headless-shell`, or `$CCS_TEST_CHROME` | playwright-core 1.65.1 (npm, 27 Nov 2026); the browser context sets `colorScheme`, which overrides the shell's flag (`decisions/T0.md`) | Headless, never Google Chrome (`rules/tools/browser.md`). |
 | Image diff | `pixelmatch` + `pngjs`, dev dependencies only | pixelmatch 8.0.0, pngjs 7.0.0 (npm, 27 Nov 2026) | F2.7 compares renders with the mockups. |
-| Distribution | Git tag on GitHub, `dist/` committed at each tag | — | No registry account, no install script in the consumer (decision 3, open question 1). |
+| Distribution | Git tag on GitHub; `dist/` only in the tagged commit, a detached child of `main` whose tag alone is pushed (`main` never holds `dist/`, `decisions/T6.md` D2) | — | No registry account, no install script in the consumer (decision 3, open question 1). |
 
 ## 7.3 Repository layout
 

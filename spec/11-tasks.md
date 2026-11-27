@@ -3,7 +3,7 @@
 T0 runs first and alone. Two tasks with no dependency between them never modify the same
 file.
 
-Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5; 4 = T6; 5 = T7.
+Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10.
 
 | Task | Wave |
 | --- | --- |
@@ -16,6 +16,8 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5; 4 = T6; 5 = T7.
 | T6 | 4 |
 | T7 | 5 |
 | T8 | 2 |
+| T9 | 3 |
+| T10 | 5 |
 
 ### T0 — Skeleton, tooling and frozen interfaces
 
@@ -124,8 +126,9 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5; 4 = T6; 5 = T7.
 - **Prerequisites**: P1
 - **Content**: `release.ts` builds `dist/` from `src/` with `tsc` and explicit options
   (`--rewriteRelativeImportExtensions --declaration`; `tsconfig.json` is the no-emit
-  development config, `decisions/T0.md` D4), commits it on a release commit, tags
-  `v<version>` and removes `dist/` from the default branch again; Worker and Node
+  development config, `decisions/T0.md` D4), commits it in one commit on a detached
+  HEAD (a child of `origin/main`), tags that commit `v<version>` and pushes only the tag,
+  so `main` never holds `dist/` (`decisions/T6.md` D2); Worker and Node
   fixtures that install the packed tarball; `README.md` usage with the Majordome example
   of `06-api.md`. Tag `v0.1.0` once M1's pull request is merged.
 - **Criterion**: F6.1 to F6.5 tested; check green; `v0.1.0` installable from GitHub.
@@ -160,10 +163,57 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5; 4 = T6; 5 = T7.
     `<style>` block, so it also fits a client that drops that block and the 600 px
     desktop card. F4.7 tested in headless Chromium with the helpers of
     `test/lint/browser.ts`, plus a check that the `code` sample's markup is unchanged.
-  - [ ] `.github/workflows/check.yml`: on push and pull request, `ubuntu-latest`, Node 24
-    (`actions/setup-node`, npm cache), `npm ci`, `npx playwright-core install --with-deps
-    chromium-headless-shell` (the pinned `playwright-core` of `package.json`, never a
-    floating `npx playwright`), then `npm run check`. Action versions read at the source
-    and cited in `spec/decisions/T8.md`.
-- **Criterion**: F4.7 tested; check green on the Mac; the workflow's first run on
-  `claude/mail-kit` green, with the F4.3 and F4.4 browser tests run, not skipped.
+  - [x] `.github/workflows/check.yml`, a first workflow (merged). Its push trigger and
+    browser tests on GitHub broke the CI rule; T9 replaces it (decision 12).
+- **Criterion**: F4.7 tested; check green on the Mac.
+
+### T9 — CI workflow per the CI rule (light)
+
+- **Depends on**: T8
+- **Files**: `.github/workflows/check.yml`
+- **Agent**: `fast-implementer` (sonnet, effort low: one workflow file, fully specified)
+- **Priority**: high
+- **Estimate**: S
+- **Covers**: F4
+- **Content**: rewrite `check.yml` per `rules/code/ci-workflows.md` of `claude-memory`,
+  on the model of `template-node`'s `.github/workflows/ci.yml` but without its copy mode:
+  - `on`: `pull_request` with `types: [opened, synchronize, reopened,
+    ready_for_review, labeled]` and `paths-ignore: ['**/*.md', 'spec/**', 'docs/**']`,
+    plus `workflow_dispatch`; never `push`. With `paths-ignore` the check is not a
+    required check (`template-node`'s `scripts/protect-default-branch.ts` leaves out a
+    workflow that filters by path), so no copy mode and no `scripts/ci/`.
+  - One job `check`, `ubuntu-latest`, with the rule's exact one-line `if` on the job,
+    job-level `concurrency` on `${{ github.workflow }}-${{ github.ref }}` with
+    `cancel-in-progress: true`, `timeout-minutes: 10` (about twice a quick check),
+    `permissions: contents: read`.
+  - Steps: `actions/checkout` (`persist-credentials: false`), `actions/setup-node`
+    (Node 24, npm cache), `npm ci`, `npx biome ci`, `npx tsc --noEmit`,
+    `npx vitest run --exclude test/lint/browser.test.ts --exclude
+    test/lint/code-width.test.ts --exclude test/mockup-match.test.ts --exclude
+    test/preview.test.ts` (the config's own excludes still apply: check it). No
+    Playwright install, no `npm run` script: T6 reworks `package.json` in parallel.
+  - Action major versions as in `template-node` (`checkout@v7`, `setup-node@v7`).
+- **Criterion**: `actionlint`-clean or read line by line against the rule; the quick
+  steps run on the Mac with the same commands and pass; the first run on the pull request
+  of M1 (or a `workflow_dispatch`) green with no browser test started.
+
+### T10 — Node 22 run of the Node fixture (light)
+
+- **Depends on**: T6
+- **Files**: `package.json`, `spec/decisions/T10.md`
+- **Agent**: `fast-implementer` (sonnet, effort low: one script, fully specified)
+- **Priority**: high
+- **Estimate**: S
+- **Covers**: F6
+- **Content**: F6.3 says Node 22, and the Mac runs Node 24. Add a script
+  `test:node22` that runs the Node consumer fixture (`test/consumers/node/*.test.mjs`,
+  after T6's `test/consumers/prepare.ts node`) with
+  `npx -y node@22.23.5 --test …` (the `node` npm package; 22.23.5 is the newest 22.x on
+  the registry, published 12 Nov 2026, read with `npm view node@22 version`), and call it
+  in `check` right after `test:node`. **UNVERIFIED**: that `npx node@22.23.5` runs on
+  darwin-arm64 without a global install; verify first and record it in
+  `spec/decisions/T10.md`; if it fails, use another pinned Node 22 that needs no global
+  change (a cached download under the system temp folder) and record which. Mac only,
+  never in CI.
+- **Criterion**: `npm run test:node22` passes and prints `v22.23.5` from
+  `process.version` in the fixture's run; `heavy npm run check` green.
