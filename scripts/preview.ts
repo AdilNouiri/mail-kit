@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 import { renderMail } from "../src/render-mail.ts";
@@ -23,22 +23,42 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 export function findBrowser(env: NodeJS.ProcessEnv = process.env, home = homedir()): string | null {
   const fromEnv = env.CCS_TEST_CHROME;
   if (fromEnv) return existsSync(fromEnv) ? fromEnv : null;
-  const cache = join(home, "Library", "Caches", "ms-playwright");
-  const bases = [cache, join(home, ".cache", "ms-playwright")];
-  const found: string[] = [];
-  for (const base of bases) {
+  const found: { revision: number; path: string }[] = [];
+  for (const base of [
+    join(home, "Library", "Caches", "ms-playwright"),
+    join(home, ".cache", "ms-playwright"),
+  ]) {
     if (!existsSync(base)) continue;
     for (const dir of readdirSync(base)) {
-      if (!dir.startsWith("chromium_headless_shell-")) continue;
+      const match = /^chromium_headless_shell-(\d+)$/.exec(dir);
+      if (!match) continue;
       for (const sub of readdirSync(join(base, dir))) {
         for (const name of ["chrome-headless-shell", "headless_shell"]) {
           const candidate = join(base, dir, sub, name);
-          if (existsSync(candidate)) found.push(candidate);
+          if (existsSync(candidate)) found.push({ revision: Number(match[1]), path: candidate });
         }
       }
     }
   }
-  return found.sort().at(-1) ?? null;
+  found.sort((a, b) => a.revision - b.revision);
+  return found.at(-1)?.path ?? null;
+}
+
+export function missingBrowserMessage(env: NodeJS.ProcessEnv = process.env): string {
+  const fromEnv = env.CCS_TEST_CHROME;
+  const why = fromEnv
+    ? `CCS_TEST_CHROME is set to ${fromEnv}, which does not exist`
+    : "No headless Chromium found";
+  return `${why}. Install one with: ${INSTALL_COMMAND}`;
+}
+
+/** `root` ends with a separator, so the repository folder itself never matches. */
+export function checkOutDir(outDir: string): string {
+  const resolved = resolve(outDir);
+  if (!resolved.startsWith(root)) {
+    throw new Error(`--out must be a folder inside the repository, not ${resolved}`);
+  }
+  return resolved;
 }
 
 export interface Shot {
@@ -231,11 +251,24 @@ export async function buildPreview(options: PreviewOptions = {}): Promise<Previe
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const outIndex = process.argv.indexOf("--out");
-  const outDir = outIndex > 0 ? process.argv[outIndex + 1] : undefined;
+  let outDir: string | undefined;
+  if (outIndex > 0) {
+    try {
+      outDir = checkOutDir(process.argv[outIndex + 1] ?? "");
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exit(2);
+    }
+  }
   const result = await buildPreview(outDir ? { outDir } : {});
   if (result.missingBrowser) {
+    console.error(`html and txt were written to ${result.outDir}.\n${missingBrowserMessage()}`);
+    process.exit(1);
+  }
+  if (result.blockedRequests.length > 0) {
+    const urls = [...new Set(result.blockedRequests)].join("\n");
     console.error(
-      `No headless Chromium found. html and txt were written to ${result.outDir}.\nInstall it with: ${INSTALL_COMMAND}`,
+      `preview: network requests refused, a logo or font URL has no local file:\n${urls}`,
     );
     process.exit(1);
   }

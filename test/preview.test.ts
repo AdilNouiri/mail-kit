@@ -1,5 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,26 +16,16 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   allPairs,
   buildPreview,
+  checkOutDir,
   findBrowser,
   INSTALL_COMMAND,
+  missingBrowserMessage,
   type PreviewResult,
   type Renderer,
 } from "../scripts/preview.ts";
-import { renderHtml } from "../src/html/index.ts";
-import { samples } from "../src/samples.ts";
-import { dreamStudio } from "../src/themes/dream-studio.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const chromePath = findBrowser();
-
-const t2Ready = (() => {
-  try {
-    renderHtml(dreamStudio, samples.code("en"));
-    return true;
-  } catch {
-    return false;
-  }
-})();
 
 // Stands in for T2's renderer: carries the theme's logo and web font URLs and a dark rule.
 const stubRender: Renderer = (theme, content) => {
@@ -48,11 +46,12 @@ let tmp: string;
 let result: PreviewResult;
 
 beforeAll(async () => {
+  if (!chromePath) throw new Error(missingBrowserMessage());
   tmp = mkdtempSync(join(tmpdir(), "mail-kit-preview-"));
   result = await buildPreview({ outDir: join(tmp, "out"), render: stubRender, chromePath });
 }, 240_000);
 afterAll(() => {
-  rmSync(tmp, { recursive: true, force: true });
+  if (tmp) rmSync(tmp, { recursive: true, force: true });
 });
 
 const out = () => join(tmp, "out");
@@ -71,7 +70,7 @@ describe("F5.1 every theme x sample", () => {
   });
 });
 
-describe.skipIf(!chromePath)("F5.2 PNGs in four views", () => {
+describe("F5.2 PNGs in four views", () => {
   it("writes light and dark PNGs at 1280x800 and 390x844 per pair", () => {
     const sizes = { desktop: [1280, 800], phone: [390, 844] } as const;
     for (const p of allPairs()) {
@@ -94,7 +93,7 @@ describe.skipIf(!chromePath)("F5.2 PNGs in four views", () => {
   });
 });
 
-describe.skipIf(!chromePath)("F5.3 runs offline", () => {
+describe("F5.3 runs offline", () => {
   it("maps logo and font URLs to assets/ and requests nothing from the network", () => {
     const html = readFileSync(join(out(), "majordome-magic-link.html"), "utf8");
     expect(html).not.toContain("https://majordomeapp.fr");
@@ -123,11 +122,32 @@ describe("F5 no headless Chromium", () => {
     expect(findBrowser({ CCS_TEST_CHROME: join(tmp, "missing") }, tmp)).toBeNull();
   });
 
-  // Waiting for T2: the command needs the real renderer (listed in spec/decisions/T5.md).
-  it.skipIf(!t2Ready)(
-    "the command exits 1 with the install command when no browser is found",
-    () => {
-      const dir = join(tmp, "cli");
+  it("picks the highest browser revision numerically", () => {
+    const home = join(tmp, "revisions");
+    for (const rev of ["999", "1000"]) {
+      const dir = join(
+        home,
+        "Library",
+        "Caches",
+        "ms-playwright",
+        `chromium_headless_shell-${rev}`,
+        "x",
+      );
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "chrome-headless-shell"), "");
+    }
+    expect(findBrowser({}, home)).toContain("chromium_headless_shell-1000");
+  });
+
+  it("names CCS_TEST_CHROME when it is set but missing", () => {
+    const message = missingBrowserMessage({ CCS_TEST_CHROME: "/nowhere/chrome" });
+    expect(message).toContain("CCS_TEST_CHROME");
+    expect(message).toContain(INSTALL_COMMAND);
+  });
+
+  it("the command exits 1 with the install command when no browser is found", () => {
+    const dir = join(root, "preview", `cli-test-${process.pid}`);
+    try {
       const env = { PATH: process.env.PATH, HOME: join(tmp, "empty-home") };
       const run = spawnSync(process.execPath, [join(root, "scripts", "preview.ts"), "--out", dir], {
         env,
@@ -136,10 +156,25 @@ describe("F5 no headless Chromium", () => {
       expect(run.status).toBe(1);
       expect(run.stderr).toContain(INSTALL_COMMAND);
       expect(existsSync(join(dir, "index.html"))).toBe(true);
-    },
-  );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
 
-  it.skipIf(t2Ready)("F5 command with the real renderer: waiting for T2", () => {
-    expect(t2Ready).toBe(false);
+describe("F5 --out guard", () => {
+  it("refuses the repository root, '.' and a folder outside the repository", () => {
+    for (const bad of [root, ".", "..", tmp]) {
+      expect(() => checkOutDir(bad), bad).toThrow("--out must be a folder inside the repository");
+    }
+    expect(checkOutDir(join(root, "preview"))).toBe(join(root, "preview"));
+  });
+
+  it("the command exits 2 before writing anything", () => {
+    const run = spawnSync(process.execPath, [join(root, "scripts", "preview.ts"), "--out", root], {
+      encoding: "utf8",
+    });
+    expect(run.status).toBe(2);
+    expect(run.stderr).toContain("--out must be a folder inside the repository");
   });
 });

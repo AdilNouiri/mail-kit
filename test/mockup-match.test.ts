@@ -5,10 +5,12 @@ import { fileURLToPath } from "node:url";
 import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { buildPreview, findBrowser, takeScreenshots } from "../scripts/preview.ts";
-import { renderHtml } from "../src/html/index.ts";
-import { samples } from "../src/samples.ts";
-import { dreamStudio } from "../src/themes/dream-studio.ts";
+import {
+  buildPreview,
+  findBrowser,
+  missingBrowserMessage,
+  takeScreenshots,
+} from "../scripts/preview.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const images = join(root, "spec", "images");
@@ -38,24 +40,16 @@ function diffRatio(a: string, b: string): number {
   return bad / (pa.width * pa.height);
 }
 
-const t2Ready = (() => {
-  try {
-    renderHtml(dreamStudio, samples.code("en"));
-    return true;
-  } catch {
-    return false;
-  }
-})();
-
 let tmp: string;
 beforeAll(() => {
+  if (!chromePath) throw new Error(missingBrowserMessage());
   tmp = mkdtempSync(join(tmpdir(), "mail-kit-mockup-"));
 });
 afterAll(() => {
-  rmSync(tmp, { recursive: true, force: true });
+  if (tmp) rmSync(tmp, { recursive: true, force: true });
 });
 
-describe.skipIf(!chromePath)("F2.7 pixel match with the mockups", () => {
+describe("F2.7 pixel match with the mockups", () => {
   it("harness: the mockup html screenshotted here matches the committed mockup PNGs", async () => {
     const shots = pairs.flatMap((p) =>
       views.map((v) => ({
@@ -72,24 +66,16 @@ describe.skipIf(!chromePath)("F2.7 pixel match with the mockups", () => {
     }
   }, 120_000);
 
-  it.skipIf(!t2Ready)(
-    "F2.7 mail-kit renders differ from the mockups by under 1 % of pixels",
-    async () => {
-      const out = join(tmp, "preview");
-      await buildPreview({ outDir: out, only: pairs.map((p) => p.name), chromePath });
-      for (const p of pairs) {
-        for (const v of views) {
-          const mine = join(out, "png", `${p.name}-${v.scheme}-${v.view}.png`);
-          const ref = join(images, `${p.mockup}${v.suffix}.png`);
-          expect(diffRatio(mine, ref), `${p.name} ${v.scheme} ${v.view}`).toBeLessThan(THRESHOLD);
-        }
+  it("F2.7 mail-kit renders differ from the mockups by under 1 % of pixels", async () => {
+    const out = join(tmp, "preview");
+    const result = await buildPreview({ outDir: out, only: pairs.map((p) => p.name), chromePath });
+    expect(result.blockedRequests).toEqual([]);
+    for (const p of pairs) {
+      for (const v of views) {
+        const mine = join(out, "png", `${p.name}-${v.scheme}-${v.view}.png`);
+        const ref = join(images, `${p.mockup}${v.suffix}.png`);
+        expect(diffRatio(mine, ref), `${p.name} ${v.scheme} ${v.view}`).toBeLessThan(THRESHOLD);
       }
-    },
-    180_000,
-  );
-
-  // Waiting for T2: the real renderHtml is still the placeholder (listed in spec/decisions/T5.md).
-  it.skipIf(t2Ready)("F2.7 mail-kit comparison: waiting for T2", () => {
-    expect(t2Ready).toBe(false);
-  });
+    }
+  }, 180_000);
 });
