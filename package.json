@@ -1,0 +1,50 @@
+{
+  "name": "mail-kit",
+  "version": "0.1.0",
+  "description": "One transactional email design for every tool, themed per tool: theme and blocks in, subject, html and text out.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./themes/*": {
+      "types": "./dist/themes/*.d.ts",
+      "default": "./dist/themes/*.js"
+    },
+    "./samples": {
+      "types": "./dist/samples.d.ts",
+      "default": "./dist/samples.js"
+    }
+  },
+  "scripts": {
+    "lint": "biome check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:worker": "node -e \"console.log('test:worker: no consumer fixture yet (T6)')\"",
+    "test:node": "node -e \"console.log('test:node: no consumer fixture yet (T6)')\"",
+    "preview": "node -e \"console.log('preview: not built yet (T5)')\"",
+    "test:mockup": "node -e \"console.log('test:mockup: no mockup comparison yet (T5)')\"",
+    "test:assumptions": "npm install --prefix test/assumptions/worker-file-dep --no-package-lock && vitest run --root test/assumptions/worker-file-dep && node test/assumptions/color-scheme.ts",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run test:worker && npm run test:node && npm run preview && npm run test:mockup"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.9",
+    "@cloudflare/vitest-plugin": "1.9.2",
+    "@types/node": "24.19.4",
+    "@types/pngjs": "6.0.5",
+    "pixelmatch": "8.0.0",
+    "playwright-core": "1.65.1",
+    "pngjs": "7.0.0",
+    "typescript": "7.0.2",
+    "vitest": "5.1.2"
+  }
+}
