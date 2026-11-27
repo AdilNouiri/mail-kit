@@ -17,6 +17,7 @@ Content links accept loopback `http:` for local development (F2.9, decision 13).
   `[0:0:0:0:0:0:0:1]`), any userinfo (`http://localhost@evil.example/`,
   `http://evil.example@localhost/`) and every other `http:` URL.
 - Theme URLs (`logo`, `webFonts`, `footer.link`) unchanged: `https:` only.
+- Mail clients checked: none new (no change to the layout or styles).
 
 ## 0.1.0
 
