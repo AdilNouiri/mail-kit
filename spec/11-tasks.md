@@ -162,7 +162,7 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T11;
 - **Criterion**: F8.1, F8.2 and F8.6 checked; F8.3 to F8.5 moved to T12; report sent;
   check green.
 
-### T12 — Real-client checks
+### T12 — Client checks without mailboxes
 
 - **Depends on**: T7
 - **Files**: `CHANGELOG.md`, `spec/decisions/T12.md`, `test/clients/` (any screenshot recipe it needs)
@@ -170,17 +170,27 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T11;
 - **Priority**: medium
 - **Estimate**: M
 - **Covers**: F8
-- **Prerequisites**: P3, P4
-- **Content**: F8.3 to F8.5 over the `send-test` sends of every built-in theme × sample:
-  Gmail web on Claude's Gmail mailbox (P4); Apple Mail inside the sandbox, with the
-  Outlook.com mailbox of P3 added as an IMAP account; Outlook.com web on the same P3
-  mailbox. Screenshots in light and dark where the client offers both, sent to CCS with
-  the verification report; any recipe (sandbox `sandbox.json`, screenshot script) lives
-  under `test/clients/`. `CHANGELOG.md`: the clients checked go into T7's
-  `## Unreleased` section (F8.6). If P4 stays open, the alternative for F8.3 is decided
-  and recorded in `spec/decisions/T12.md`; F8.3 is never marked passed without Gmail.
-- **Criterion**: F8.3, F8.4 and F8.5 checked with screenshots; report sent; F8.6's
-  `CHANGELOG.md` line lists the clients checked; check green.
+- **Content**: F8.3 to F8.5 without any mailbox (decision 14), over every built-in
+  theme × sample rendered by `renderMail` (the mails T7 sent). Before writing the
+  emulations, read Gmail's CSS documentation
+  (`https://developers.google.com/workspace/gmail/design/css`) and the caniemail data
+  for `gmail` and `outlook-com` (`https://github.com/hteumeuleu/caniemail`), and cite in
+  `spec/decisions/T12.md` the source of each rule applied; a rule without a source is not
+  applied. Gmail (variants A and B) and Outlook.com (`x_` prefixes) are emulated by a
+  script of `test/clients/` that transforms the html and screenshots it with
+  `$CCS_TEST_CHROME`, headless. Apple Mail: the `.eml` files are opened with
+  `qlmanage -p` (Mail's Quick Look extension) inside `sandbox run`, guest in light then
+  dark appearance, `screencapture` in the guest; never on the host screen. If the
+  extension does not render in the guest, the fallback is Playwright's WebKit, headless,
+  and F8.4 is then reported as emulated. Recipes (`sandbox.json`, scripts) live under
+  `test/clients/` and run on demand, not in `npm run check`. Screenshots go to CCS with
+  the verification report, each criterion marked "emulated" or "real renderer" as F8
+  says. `CHANGELOG.md`: the clients checked, each with its mark, go into T7's
+  `## Unreleased` section (F8.6).
+- **Criterion**: F8.3 and F8.5 checked as emulated and F8.4 with Apple Mail's renderer
+  (or as emulated after the fallback), with screenshots; no criterion reported as passed
+  in real Gmail or real Outlook; report sent; F8.6's `CHANGELOG.md` line lists each
+  client with its mark; check green.
 
 ### T8 — Long codes on phones and the CI workflow (light batch)
 
