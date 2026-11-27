@@ -14,4 +14,7 @@ First release, installed from the GitHub tag with `dist/` committed.
 - `npm run preview` writes the preview gallery; `scripts/release.ts` builds, commits and
   tags `dist/` (with `--dry-run`); Worker and Node consumer fixtures install the packed
   tarball.
-- Mail clients checked: none yet (test sends come with M2, F8.6).
+- `npm run send-test` sends one theme and sample through Resend to Claude's mailboxes.
+- Mail clients checked: none. The 6 built-in pairs were delivered to Claude's mailbox, but
+  Gmail web, Apple Mail (sandbox) and Outlook.com could not be opened (no web or IMAP
+  mailbox of Claude's); classic Outlook is not checked. See `spec/decisions/T7.md`.
