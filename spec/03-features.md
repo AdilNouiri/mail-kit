@@ -166,7 +166,7 @@ Acceptance criteria:
    `npm install github:<owner>/mail-kit#v0.1.0`, then `node_modules/mail-kit/dist/` holds
    `.js` and `.d.ts` files, with no install script run.
 2. **Works in a Worker.** Given the fixture `test/consumers/worker/`, when its test runs in
-   `workerd` (`@cloudflare/vitest-pool-workers`), then importing `mail-kit` and
+   `workerd` (`@cloudflare/vitest-plugin`), then importing `mail-kit` and
    `mail-kit/themes/majordome` and calling `renderMail` returns the expected subject and a
    non-empty html.
 3. **Works in Node.** Given the fixture `test/consumers/node/`, when `node --test` runs it

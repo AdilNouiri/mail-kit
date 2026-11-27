@@ -2,7 +2,7 @@
 
 - **Single check command**: `heavy npm run check` = `biome check`, `tsc --noEmit`,
   `vitest run` (unit and lint tests), the Worker fixture under
-  `@cloudflare/vitest-pool-workers`, the Node fixture under `node --test`, then
+  `@cloudflare/vitest-plugin`, the Node fixture under `node --test`, then
   `npm run preview` and the pixel comparison of F2.7. Non-zero on any failure. Every task
   makes it pass.
 - **Levels**:

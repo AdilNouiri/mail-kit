@@ -19,13 +19,13 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4; 3 = T5; 4 = T6; 5 = T7.
 ### T0 — Skeleton, tooling and frozen interfaces
 
 - **Depends on**: —
-- **Files**: `package.json`, `package-lock.json`, `tsconfig.json`, `biome.json`, `vitest.config.ts`, `.gitignore`, `CLAUDE.md`, `README.md`, `CHANGELOG.md`, `src/types.ts`, `src/index.ts`, `src/escape.ts`, `src/render-mail.ts`, `src/themes/index.ts`, `test/escape.test.ts`, `test/assumptions/`, `spec/decisions/T0.md`
+- **Files**: `package.json`, `package-lock.json`, `tsconfig.json`, `biome.json`, `vitest.config.ts`, `.gitignore`, `CLAUDE.md`, `README.md`, `CHANGELOG.md`, `src/types.ts`, `src/index.ts`, `src/escape.ts`, `src/render-mail.ts`, `src/themes/index.ts`, `src/theme.ts` (placeholder, T1 replaces it), `src/html/index.ts` (placeholder, T2), `src/text.ts` (placeholder, T3), `src/themes/majordome.ts`, `src/themes/dream-studio.ts`, `src/samples.ts` (placeholders, T4), `test/escape.test.ts`, `test/assumptions/`, `spec/decisions/T0.md`
 - **Agent**: `architect` (opus, effort medium: freezes the types every other task uses)
 - **Priority**: high
 - **Estimate**: M
 - **Covers**: —
 - **Content**: Node 24 project, ESM, `strict` TypeScript; pinned dev dependencies
-  (TypeScript, Biome, Vitest, `@cloudflare/vitest-pool-workers`, Playwright core,
+  (TypeScript, Biome, Vitest, `@cloudflare/vitest-plugin`, Playwright core,
   `pixelmatch`, `pngjs`), versions read from npm and recorded in `spec/decisions/T0.md`.
   `npm run check` as in `09-tests.md`, with the preview and fixture steps as no-ops that
   later tasks fill. `src/types.ts` holds every type of `04-data-model.md` and the error
@@ -34,7 +34,7 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4; 3 = T5; 4 = T6; 5 = T7.
   `render-mail.ts`, which calls `renderHtml` from `./html/index` and `renderText`).
   `src/escape.ts` (html text and attribute escaping, tested). `package.json` `exports`
   for `.`, `./themes/*` and `./samples`. Verify and record in `test/assumptions/`: a
-  Worker fixture can import a package from a `file:` path in `vitest-pool-workers`; the
+  Worker fixture can import a package from a `file:` path in `@cloudflare/vitest-plugin`; the
   headless shell renders `--blink-settings=preferredColorScheme`. `CLAUDE.md`: the check
   command, the rules of `01-vision-and-scope.md` section 1.5.
 - **Criterion**: `heavy npm run check` green with stub modules; types compile; assumptions
@@ -121,7 +121,9 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4; 3 = T5; 4 = T6; 5 = T7.
 - **Estimate**: M
 - **Covers**: F6
 - **Prerequisites**: P1
-- **Content**: `release.ts` builds `dist/`, commits it on a release commit, tags
+- **Content**: `release.ts` builds `dist/` from `src/` with `tsc` and explicit options
+  (`--rewriteRelativeImportExtensions --declaration`; `tsconfig.json` is the no-emit
+  development config, `decisions/T0.md` D4), commits it on a release commit, tags
   `v<version>` and removes `dist/` from the default branch again; Worker and Node
   fixtures that install the packed tarball; `README.md` usage with the Majordome example
   of `06-api.md`. Tag `v0.1.0` once M1's pull request is merged.

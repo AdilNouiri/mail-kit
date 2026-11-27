@@ -9,7 +9,7 @@ signatures below are frozen in T0 (`src/types.ts`, `src/index.ts`).
 | --- | --- | --- |
 | `mail-kit` → `defineTheme` | `(input: ThemeInput) => Theme` | `ThemeError { path: string; message: string }` (F1) |
 | `mail-kit` → `renderMail` | `(theme: Theme, content: MailContent) => RenderedMail` | `ContentError { blockIndex?: number; field: string; message: string }` (F2) |
-| `mail-kit` → `renderText` | `(theme: Theme, content: MailContent) => string` | same as `renderMail`; used by `renderMail` and exported for tests |
+| `mail-kit` → `renderText` | `(theme: Theme, content: MailContent) => string` | none of its own: it expects content that `renderMail` accepts (`renderMail` runs the checks first); exported for tests |
 | `mail-kit` → types | `Theme`, `ThemeInput`, `MailContent`, `Block`, `Inline`, `RenderedMail`, `ThemeError`, `ContentError`, `VERSION` | — |
 | `mail-kit/themes/majordome` | `export const majordome: Theme` | — |
 | `mail-kit/themes/dream-studio` | `export const dreamStudio: Theme` | — |

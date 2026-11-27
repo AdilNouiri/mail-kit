@@ -23,12 +23,12 @@ The consumer sends the returned strings with its own sender. `src/` never import
 
 | Area | Choice | Version (source, date) | Reason |
 | --- | --- | --- | --- |
-| Language | TypeScript, ES2022 modules, `strict` | UNVERIFIED: the version installed by T0 (`npm view typescript version`, recorded in `decisions/T0.md`) | Typed themes and blocks catch errors in the consumer's editor. |
+| Language | TypeScript, ES2022 modules, `strict` | 7.0.2 (npm, 27 Nov 2026, `decisions/T0.md`) | Typed themes and blocks catch errors in the consumer's editor. |
 | Html building | Template strings with one `escape` function, no library | — | Zero dependency, runs in Workers; MJML needs Node and is large; React Email needs React, which Majordome does not use. |
-| Tests | Vitest; `@cloudflare/vitest-pool-workers` for the Worker fixture | UNVERIFIED: versions pinned by T0 from npm | Majordome already uses both, so the fixture matches its setup. |
-| Lint and format | Biome | UNVERIFIED: pinned by T0 | Same as Majordome's app. |
-| Screenshots | Playwright's `chromium-headless-shell`, or `$CCS_TEST_CHROME` | UNVERIFIED: pinned by T0 | Headless, never Google Chrome (`rules/tools/browser.md`). |
-| Image diff | `pixelmatch` + `pngjs`, dev dependencies only | UNVERIFIED: pinned by T0 | F2.7 compares renders with the mockups. |
+| Tests | Vitest; `@cloudflare/vitest-plugin` for the Worker fixture | vitest 5.1.2, @cloudflare/vitest-plugin 1.9.2 (npm, 27 Nov 2026; `@cloudflare/vitest-pool-workers` is deprecated in its favour) | Majordome already uses both, so the fixture matches its setup. |
+| Lint and format | Biome | 2.6.9 (npm, 27 Nov 2026) | Same as Majordome's app. |
+| Screenshots | Playwright's `chromium-headless-shell`, or `$CCS_TEST_CHROME` | playwright-core 1.65.1 (npm, 27 Nov 2026); the browser context sets `colorScheme`, which overrides the shell's flag (`decisions/T0.md`) | Headless, never Google Chrome (`rules/tools/browser.md`). |
+| Image diff | `pixelmatch` + `pngjs`, dev dependencies only | pixelmatch 8.0.0, pngjs 7.0.0 (npm, 27 Nov 2026) | F2.7 compares renders with the mockups. |
 | Distribution | Git tag on GitHub, `dist/` committed at each tag | — | No registry account, no install script in the consumer (decision 3, open question 1). |
 
 ## 7.3 Repository layout
