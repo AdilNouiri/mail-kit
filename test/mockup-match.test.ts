@@ -49,33 +49,51 @@ afterAll(() => {
   if (tmp) rmSync(tmp, { recursive: true, force: true });
 });
 
-describe("F2.7 pixel match with the mockups", () => {
-  it("harness: the mockup html screenshotted here matches the committed mockup PNGs", async () => {
-    const shots = pairs.flatMap((p) =>
-      views.map((v) => ({
-        url: `file://${join(root, "spec", "images", "src", `${p.mockup}.html`)}`,
-        png: join(tmp, `harness-${p.mockup}${v.suffix}.png`),
-        committed: join(images, `${p.mockup}${v.suffix}.png`),
-        scheme: v.scheme,
-        view: v.view,
-      })),
-    );
-    await takeScreenshots(chromePath as string, shots);
-    for (const s of shots) {
-      expect(diffRatio(s.png, s.committed), s.png).toBeLessThan(THRESHOLD);
-    }
-  }, 120_000);
+const mockupShots = () =>
+  pairs.flatMap((p) =>
+    views.map((v) => ({
+      url: `file://${join(root, "spec", "images", "src", `${p.mockup}.html`)}`,
+      png: join(tmp, `fresh-${p.mockup}${v.suffix}.png`),
+      committed: join(images, `${p.mockup}${v.suffix}.png`),
+      mockup: p.mockup,
+      suffix: v.suffix,
+      scheme: v.scheme,
+      view: v.view,
+    })),
+  );
 
-  it("F2.7 mail-kit renders differ from the mockups by under 1 % of pixels", async () => {
+describe("F2.7 pixel match with the mockups", () => {
+  // The committed PNGs were rasterized on macOS: Linux text differs by about 1 % of pixels.
+  it.skipIf(process.platform !== "darwin")(
+    "harness (macOS only): the mockup html screenshotted here matches the committed mockup PNGs",
+    async () => {
+      const shots = mockupShots();
+      await takeScreenshots(chromePath as string, shots);
+      for (const s of shots) {
+        expect(diffRatio(s.png, s.committed), s.png).toBeLessThan(THRESHOLD);
+      }
+    },
+    120_000,
+  );
+
+  it("F2.7 mail-kit renders differ from the mockup html rendered by the same browser by under 1 % of pixels", async () => {
+    const shots = mockupShots();
+    await takeScreenshots(chromePath as string, shots);
     const out = join(tmp, "preview");
     const result = await buildPreview({ outDir: out, only: pairs.map((p) => p.name), chromePath });
     expect(result.blockedRequests).toEqual([]);
+    const ratios: string[] = [];
+    const failures: string[] = [];
     for (const p of pairs) {
       for (const v of views) {
         const mine = join(out, "png", `${p.name}-${v.scheme}-${v.view}.png`);
-        const ref = join(images, `${p.mockup}${v.suffix}.png`);
-        expect(diffRatio(mine, ref), `${p.name} ${v.scheme} ${v.view}`).toBeLessThan(THRESHOLD);
+        const ref = join(tmp, `fresh-${p.mockup}${v.suffix}.png`);
+        const ratio = diffRatio(mine, ref);
+        ratios.push(`${p.name} ${v.scheme} ${v.view}: ${(ratio * 100).toFixed(3)}%`);
+        if (ratio >= THRESHOLD) failures.push(ratios.at(-1) as string);
       }
     }
+    console.log(ratios.join("\n"));
+    expect(failures).toEqual([]);
   }, 180_000);
 });
