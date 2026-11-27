@@ -4,7 +4,7 @@
   "features": "7c48f26a-8d7b-45a6-9003-aad5ee9f5d43",
   "decisions": "6e13dfdb-c1fa-4079-b379-239e62de7a81",
   "myActions": "6fd3e00d-b438-4a55-97d8-7f1f306dec6d",
-  "tasksView": "view://425f92e5-78b5-8164-af04-000c0dccba3d",
+  "tasksView": "https://app.notion.com/p/425f92e578b58159ba26c96ac0f82150?v=425f92e578b58164af04000c0dccba3d",
   "taskRows": {
     "T0": "425f92e5-78b5-81a2-9993-c75d6138518a",
     "T1": "425f92e5-78b5-8180-8b13-e71576b6c9bc",
@@ -13,7 +13,12 @@
     "T4": "425f92e5-78b5-81e0-bd59-f54ef24399c8",
     "T5": "425f92e5-78b5-81cf-a41c-d289dc735ecd",
     "T6": "425f92e5-78b5-81ec-b7a9-fff7a011650e",
-    "T7": "425f92e5-78b5-8122-ae5e-c1af7be37090"
+    "T7": "425f92e5-78b5-8122-ae5e-c1af7be37090",
+    "T8": "425f92e5-78b5-810e-9519-c1aa9ff329c0",
+    "T9": "425f92e5-78b5-81db-9a29-effccd591247",
+    "T10": "425f92e5-78b5-81f9-ab37-d67128bb5a04",
+    "T4b": "425f92e5-78b5-8116-be3f-c2ae565589ff",
+    "T5b": "425f92e5-78b5-8118-9577-f867b1ab827d"
   },
   "featureRows": {
     "F1": "425f92e5-78b5-816b-bbb8-f4e22f7644cf",
