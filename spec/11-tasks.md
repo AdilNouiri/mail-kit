@@ -3,7 +3,7 @@
 T0 runs first and alone. Two tasks with no dependency between them never modify the same
 file.
 
-Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4; 3 = T5; 4 = T6; 5 = T7.
+Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5; 4 = T6; 5 = T7.
 
 | Task | Wave |
 | --- | --- |
@@ -15,6 +15,7 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4; 3 = T5; 4 = T6; 5 = T7.
 | T5 | 3 |
 | T6 | 4 |
 | T7 | 5 |
+| T8 | 2 |
 
 ### T0 — Skeleton, tooling and frozen interfaces
 
@@ -114,7 +115,7 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4; 3 = T5; 4 = T6; 5 = T7.
 
 ### T6 — Release, consumer fixtures and the first tag
 
-- **Depends on**: T5
+- **Depends on**: T5, T8
 - **Files**: `scripts/release.ts`, `test/consumers/`, `package.json`, `README.md`, `CHANGELOG.md`, `spec/decisions/T6.md`
 - **Agent**: `implementer` (sonnet, effort medium: fully specified, criteria tested)
 - **Priority**: high
@@ -142,3 +143,27 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4; 3 = T5; 4 = T6; 5 = T7.
   mailbox allow-list, the 429 retry; then the real sends and the Gmail web, Apple Mail
   (sandbox) and Outlook screenshots, sent to CCS with the verification report.
 - **Criterion**: F8.1 to F8.6 checked; report sent; check green.
+
+### T8 — Long codes on phones and the CI workflow (light batch)
+
+- **Depends on**: T2
+- **Files**: `src/html/blocks/code.ts`, `test/lint/code-width.test.ts`, `.github/workflows/check.yml`, `spec/decisions/T8.md`
+- **Agent**: `implementer` (sonnet, effort medium: two small items, fully specified, criteria tested)
+- **Priority**: high
+- **Estimate**: S
+- **Covers**: F4
+- **Content**: a light batch of two items found by T2:
+  - [ ] `renderCode` sets the code cell's inline `font-size` and `letter-spacing` from
+    the displayed length n (code plus group spaces): n ≤ 12 keeps 30 px and 8 px (no
+    change to the mockups); 13 ≤ n ≤ 16 uses 22 px and 4 px; 17 ≤ n ≤ 23 uses 16 px and
+    2 px, `line-height` scaled to match, `white-space:nowrap`. Inline, not in the
+    `<style>` block, so it also fits a client that drops that block and the 600 px
+    desktop card. F4.7 tested in headless Chromium with the helpers of
+    `test/lint/browser.ts`, plus a check that the `code` sample's markup is unchanged.
+  - [ ] `.github/workflows/check.yml`: on push and pull request, `ubuntu-latest`, Node 24
+    (`actions/setup-node`, npm cache), `npm ci`, `npx playwright-core install --with-deps
+    chromium-headless-shell` (the pinned `playwright-core` of `package.json`, never a
+    floating `npx playwright`), then `npm run check`. Action versions read at the source
+    and cited in `spec/decisions/T8.md`.
+- **Criterion**: F4.7 tested; check green on the Mac; the workflow's first run on
+  `claude/mail-kit` green, with the F4.3 and F4.4 browser tests run, not skipped.
