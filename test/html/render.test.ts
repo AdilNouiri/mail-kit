@@ -148,6 +148,19 @@ describe("F2.2 each block renders", () => {
 });
 
 describe("F2.3 text escaped", () => {
+  it("escapes quotes in a URL in the button href, the VML href and the fallback link", () => {
+    const url = `https://example.com/a?q="x"&b='y'`;
+    const escaped = "https://example.com/a?q=&quot;x&quot;&amp;b=&#39;y&#39;";
+    const html = renderHtml(majordomeLike, mail([{ type: "button", label: "Go", url }]));
+    expect(html).toContain(
+      `<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escaped}"`,
+    );
+    expect(html).toContain(`<a href="${escaped}" class="mk-button"`);
+    expect(html).toContain(`<a href="${escaped}" class="mk-link"`);
+    expect(html).not.toContain(`"x"`);
+    expect(html).not.toMatch(/href="[^"]*'/);
+  });
+
   it("escapes a paragraph and lets no tag through", () => {
     const html = renderHtml(
       majordomeLike,

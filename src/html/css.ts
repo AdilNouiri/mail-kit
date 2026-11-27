@@ -16,11 +16,19 @@ function familyName(entry: string): string {
     .toLowerCase();
 }
 
-/** The stack without the theme's web font families: what a client without web fonts uses. */
+/**
+ * The stack without the theme's web font families: what a client without web fonts uses.
+ * Never empty: a stack of web fonts only keeps its last entry, the generic family.
+ */
 export function fallbackStack(theme: Theme, stack: string): string {
   const webFamilies = new Set(theme.webFonts.map((font) => familyName(font.family)));
-  const kept = stack.split(",").filter((entry) => !webFamilies.has(familyName(entry)));
-  return cssValue(kept.map((entry) => entry.trim()).join(", "));
+  const entries = stack
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
+  const kept = entries.filter((entry) => !webFamilies.has(familyName(entry)));
+  const chosen = kept.length > 0 ? kept : entries.slice(-1);
+  return cssValue(chosen.length > 0 ? chosen.join(", ") : "sans-serif");
 }
 
 export const MONO_STACK = "'SFMono-Regular',Menlo,Consolas,'Courier New',monospace";

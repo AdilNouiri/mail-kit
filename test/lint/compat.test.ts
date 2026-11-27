@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderHtml } from "../../src/html/index.ts";
 import type { Block, MailContent, Theme } from "../../src/types.ts";
-import { blockSets, themes } from "../html/fixtures.ts";
+import { blockSets, testTheme, themes } from "../html/fixtures.ts";
 
 const cases = Object.entries(themes).flatMap(([themeName, theme]) =>
   Object.entries(blockSets).map(
@@ -65,6 +65,19 @@ describe("F4.2 Outlook frame", () => {
   });
 });
 
+describe("F4.2 fallback stack never empty", () => {
+  it("keeps the generic family when the stack holds web fonts only", () => {
+    const theme = testTheme({
+      ...themes.majordome,
+      fonts: { display: "'Gloock'", text: "'Figtree', sans-serif" },
+    });
+    const html = renderHtml(theme, blockSets["magic-link"]);
+    expect(html).toContain(".mk-heading, .mk-wordmark { font-family:'Gloock' !important; }");
+    expect(html).toContain("font-family:sans-serif !important;");
+    expect(html).not.toMatch(/font-family:\s*!important/);
+  });
+});
+
 describe("F4.3 dark mode (static part)", () => {
   it.each(cases)("%s: metas and Outlook.com [data-ogsc] text colours", (_, theme, content) => {
     const html = renderHtml(theme, content);
@@ -72,8 +85,9 @@ describe("F4.3 dark mode (static part)", () => {
     expect(html).toContain('<meta name="supported-color-schemes" content="light dark">');
     const d = theme.dark;
     expect(html).toContain(`[data-ogsc] .mk-heading { color:${d.text} !important; }`);
+    expect(html).toContain(`[data-ogsc] .mk-text { color:${d.textSoft} !important; }`);
     expect(html).toContain(
-      `[data-ogsc] .mk-text, [data-ogsc] .mk-note { color:${d.textSoft} !important; }`,
+      `[data-ogsc] .mk-code, [data-ogsc] .mk-note { color:${d.text} !important; }`,
     );
     expect(html).toContain(
       `[data-ogsc] .mk-small, [data-ogsc] .mk-footer { color:${d.muted} !important; }`,

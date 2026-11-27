@@ -16,7 +16,7 @@ function darkTextRules(theme: Theme, prefix: string): string {
   const sel = (...classes: string[]) => classes.map((name) => `${prefix}${name}`).join(", ");
   return [
     `    ${sel(".mk-heading")} { color:${d.text} !important; }`,
-    `    ${sel(".mk-text", ".mk-note")} { color:${d.textSoft} !important; }`,
+    `    ${sel(".mk-text")} { color:${d.textSoft} !important; }`,
     `    ${sel(".mk-code", ".mk-note")} { color:${d.text} !important; }`,
     `    ${sel(".mk-small", ".mk-footer")} { color:${d.muted} !important; }`,
     `    ${sel(".mk-small a", ".mk-link")} { color:${d.link} !important; }`,
