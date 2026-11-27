@@ -225,6 +225,7 @@ export function defineTheme(input: ThemeInput): Theme {
       checkContrast(set[key], set.subtle, `${prefix}.${key}`, `${prefix}.subtle`);
     }
   }
+  checkContrast(dark.muted, dark.canvas, "dark.muted", "dark.canvas");
 
   const theme = {
     id,

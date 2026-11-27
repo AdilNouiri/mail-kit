@@ -189,6 +189,12 @@ describe("F1.4 contrast checked", () => {
     expect(pathOf(mutate((input) => (input.dark.subtle = "#ffffff")))).toBe("dark.text");
   });
 
+  it("checks dark.muted on dark.canvas, the footer colour in dark mode", () => {
+    const error = contrastError(mutate((input) => (input.dark.canvas = input.dark.muted)));
+    expect(error.path).toBe("dark.muted");
+    expect(error.message).toMatch(/dark\.muted on dark\.canvas/);
+  });
+
   it("accepts a ratio of exactly the limit side (just above 4.5) and refuses just below", () => {
     expect(() => defineTheme(mutate((input) => (input.colors.muted = "#767676")))).not.toThrow();
     expect(pathOf(mutate((input) => (input.colors.muted = "#777777")))).toBe("colors.muted");
