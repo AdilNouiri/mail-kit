@@ -1,0 +1,36 @@
+export { renderMail } from "./render-mail.ts";
+export { renderText } from "./text.ts";
+export { defineTheme } from "./theme.ts";
+export type {
+  Block,
+  BlockType,
+  BuiltInThemeId,
+  ButtonBlock,
+  CodeBlock,
+  DisplayWeight,
+  DividerBlock,
+  FontWeight,
+  FooterLink,
+  HeadingBlock,
+  HexColor,
+  Inline,
+  Lang,
+  LinkBlock,
+  Logo,
+  MailContent,
+  NoteBlock,
+  ParagraphBlock,
+  RenderedMail,
+  RichText,
+  SampleName,
+  Samples,
+  Theme,
+  ThemeColors,
+  ThemeDarkColors,
+  ThemeFonts,
+  ThemeFontsInput,
+  ThemeFooter,
+  ThemeInput,
+  WebFont,
+} from "./types.ts";
+export { ContentError, ThemeError, VERSION } from "./types.ts";

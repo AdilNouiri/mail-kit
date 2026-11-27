@@ -1,0 +1,8 @@
+{
+  "name": "worker-file-dep",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "tiny-lib": "file:../tiny-lib"
+  }
+}
