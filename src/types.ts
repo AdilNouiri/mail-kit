@@ -209,7 +209,8 @@ export class ThemeError extends Error {
  */
 export class ContentError extends Error {
   override readonly name = "ContentError";
-  readonly blockIndex?: number;
+  // `declare`: an es2022 class field would always create the property, set to undefined.
+  declare readonly blockIndex?: number;
   readonly field: string;
 
   constructor(field: string, message: string, blockIndex?: number) {

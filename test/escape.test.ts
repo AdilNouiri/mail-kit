@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { escapeAttribute, escapeHtml, isAllowedUrl } from "../src/escape.ts";
+import { ContentError } from "../src/types.ts";
+
+describe("ContentError", () => {
+  it("has no blockIndex property when none is given", () => {
+    expect("blockIndex" in new ContentError("subject", "Subject is empty.")).toBe(false);
+  });
+
+  it("keeps the block index when given", () => {
+    const error = new ContentError("url", "Only https: and mailto: URLs.", 2);
+    expect(error.blockIndex).toBe(2);
+    expect(error.field).toBe("url");
+  });
+});
 
 describe("escapeHtml", () => {
   it("F2.3 escapes markup, ampersands and double quotes in text", () => {
