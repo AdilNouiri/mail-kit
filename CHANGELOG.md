@@ -6,9 +6,16 @@ gives the migration; each release records which mail clients were checked (F8.6)
 ## Unreleased
 
 - `npm run send-test` sends one theme and sample through Resend to Claude's mailboxes.
-- Mail clients checked: none. The 6 built-in pairs were delivered to Claude's mailbox, but
-  Gmail web, Apple Mail (sandbox) and Outlook.com could not be opened (no web or IMAP
-  mailbox of Claude's); classic Outlook is not checked. See `spec/decisions/T7.md`.
+- Mail clients checked, over the 6 built-in theme and sample pairs, without any mailbox
+  (decision 14); screenshots are in the verification report of F8:
+  - Gmail web, Google account (variant A): emulated, never marked passed in real Gmail.
+  - Gmail web, non-Google account (variant B, no `<style>` block): emulated.
+  - Outlook.com web: emulated, never marked passed in real Outlook.
+  - Apple Mail: emulated with WebKit (light and dark). Quick Look's Mail extension opened no
+    window for the `.eml` files in the sandbox guest, so it is not a real renderer check.
+  - Classic Outlook: not checked, covered only by the MSO rules of F4.2.
+  - Rules and sources: `spec/decisions/T12.md`; recipes: `test/clients/`.
+- The 6 pairs were also sent through Resend to Claude's mailbox (`spec/decisions/T7.md`).
 
 ## 0.1.1
 
