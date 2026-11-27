@@ -11,7 +11,7 @@ Each release is a Git tag with the compiled `dist/` committed, so npm installs i
 GitHub with no build step and no install script:
 
 ```sh
-npm install github:AdilNouiri/mail-kit#v0.1.0
+npm install github:AdilNouiri/mail-kit#v0.1.1
 ```
 
 The package ships ES modules with types. Its exports:
