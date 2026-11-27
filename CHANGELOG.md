@@ -3,6 +3,13 @@
 Every tag `v<major>.<minor>.<patch>` is listed here. A breaking change bumps the major and
 gives the migration; each release records which mail clients were checked (F8.6).
 
+## Unreleased
+
+- `npm run send-test` sends one theme and sample through Resend to Claude's mailboxes.
+- Mail clients checked: none. The 6 built-in pairs were delivered to Claude's mailbox, but
+  Gmail web, Apple Mail (sandbox) and Outlook.com could not be opened (no web or IMAP
+  mailbox of Claude's); classic Outlook is not checked. See `spec/decisions/T7.md`.
+
 ## 0.1.1
 
 Content links accept loopback `http:` for local development (F2.9, decision 13).
