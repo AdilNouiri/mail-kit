@@ -3,7 +3,7 @@
 T0 runs first and alone. Two tasks with no dependency between them never modify the same
 file.
 
-Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10; 6 = T11.
+Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T7; 7 = T11.
 
 | Task | Wave |
 | --- | --- |
@@ -14,11 +14,11 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10; 6 = 
 | T4 | 2 |
 | T5 | 3 |
 | T6 | 4 |
-| T7 | 5 |
+| T7 | 6 |
 | T8 | 2 |
 | T9 | 3 |
 | T10 | 5 |
-| T11 | 6 |
+| T11 | 7 |
 
 ### T0 — Skeleton, tooling and frozen interfaces
 
@@ -136,8 +136,8 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10; 6 = 
 
 ### T7 — Test sends and real-client checks
 
-- **Depends on**: T6
-- **Files**: `scripts/send-test.ts`, `test/send-test.test.ts`, `CHANGELOG.md`, `spec/decisions/T7.md`
+- **Depends on**: T6, T10
+- **Files**: `scripts/send-test.ts`, `test/send-test.test.ts`, `CHANGELOG.md`, `package.json`, `spec/decisions/T7.md`
 - **Agent**: `tester` (sonnet, effort medium: verification against criteria)
 - **Priority**: medium
 - **Estimate**: M
@@ -149,7 +149,8 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T7, T10; 6 = 
   Note (27 Nov 2026): T11 runs after T7 and writes the `0.1.1` release notes in
   `CHANGELOG.md` and the version bump in `package.json`; T7 adds only its own entry under
   its own heading in `CHANGELOG.md` and writes neither the `0.1.1` heading nor the
-  version.
+  version. In `package.json`, T7 only adds the `send-test` script entry that
+  `06-api.md` requires; T11 owns the version bump.
 - **Criterion**: F8.1 to F8.6 checked; report sent; check green.
 
 ### T8 — Long codes on phones and the CI workflow (light batch)
