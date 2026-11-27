@@ -1,0 +1,5 @@
+{
+  "name": "mail-kit-consumer-node",
+  "private": true,
+  "type": "module"
+}
