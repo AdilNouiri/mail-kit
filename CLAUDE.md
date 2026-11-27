@@ -30,6 +30,8 @@ the reference; read `spec/README.md` first.
 - Every rendered mail stays under 60 KB (Gmail clips at 102 KB).
 - Every text is escaped with `src/escape.ts`; there is no raw-html block. Only `https:`
   and `mailto:` URLs are accepted.
+- Text between tags uses `escapeHtml`; every attribute value (`href`, `alt`, `aria-label`,
+  `title`) uses `escapeAttribute`.
 - Majordome bans the `style` attribute in its JSX: mail-kit returns strings, so a
   consumer never writes one.
 - No paid service: Resend's free plan covers the test sends (M2).
