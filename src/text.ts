@@ -1,12 +1,7 @@
+import { labelled, stringsFor } from "./i18n.ts";
 import type { Block, Inline, Lang, MailContent, RichText, Theme } from "./types.ts";
 
 const WIDTH = 76;
-
-// Stub until T1's src/i18n.ts lands (see spec/decisions/T3.md).
-const LABELS: Readonly<Record<Lang, { readonly code: string; readonly colon: string }>> = {
-  fr: { code: "Code", colon: " :" },
-  en: { code: "Code", colon: ":" },
-};
 
 function wrap(line: string): string[] {
   const words = line.split(/\s+/).filter((word) => word !== "");
@@ -46,7 +41,6 @@ function groupCode(code: string, group: number): string {
 }
 
 function renderBlock(block: Block, lang: Lang): string[] {
-  const labels = LABELS[lang];
   switch (block.type) {
     case "heading": {
       const title = block.text.replace(/\s+/g, " ").trim();
@@ -56,11 +50,11 @@ function renderBlock(block: Block, lang: Lang): string[] {
     case "note":
       return wrapText(richText(block.content));
     case "button":
-      return wrap(`${block.label}${labels.colon} ${block.url}`);
+      return wrap(labelled(lang, block.label, block.url));
     case "link":
       return wrap(`${block.lead} ${block.url}`);
     case "code":
-      return [`${labels.code}${labels.colon} ${groupCode(block.code, block.group ?? 0)}`];
+      return [labelled(lang, stringsFor(lang).codeLabel, groupCode(block.code, block.group ?? 0))];
     case "divider":
       return ["---"];
   }
@@ -71,7 +65,7 @@ export function renderText(theme: Theme, content: MailContent): string {
   const footer = [
     ...wrapText(content.footerReason ?? theme.footer.reason),
     ...wrapText(theme.footer.legal),
-    ...(link ? wrap(`${link.label}${LABELS[theme.lang].colon} ${link.url}`) : []),
+    ...(link ? wrap(labelled(theme.lang, link.label, link.url)) : []),
   ];
   const lines: string[] = [];
   for (const block of content.blocks) lines.push(...renderBlock(block, theme.lang), "");
