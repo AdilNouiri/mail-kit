@@ -3,7 +3,7 @@
 T0 runs first and alone. Two tasks with no dependency between them never modify the same
 file.
 
-Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T11; 7 = T7.
+Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T11; 7 = T7; 8 = T12.
 
 | Task | Wave |
 | --- | --- |
@@ -19,6 +19,7 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T11;
 | T9 | 3 |
 | T10 | 5 |
 | T11 | 6 |
+| T12 | 8 |
 
 ### T0 — Skeleton, tooling and frozen interfaces
 
@@ -154,7 +155,32 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T11;
   checked belong to the next release, since `0.1.1` ships without them), and changes
   neither the `0.1.1` section nor the version. In `package.json`, T7 only adds the
   `send-test` script line that `06-api.md` requires.
-- **Criterion**: F8.1 to F8.6 checked; report sent; check green.
+  Note (27 Nov 2026): the Gmail web, Apple Mail and Outlook checks (F8.3 to F8.5) move to
+  T12: Claude's vault mailbox (Cloudflare Email Routing) has no web client and no IMAP
+  (`decisions/T7.md` D7, assumption 3). T7 keeps the script, its tests, the real sends
+  and F8.1, F8.2 and F8.6.
+- **Criterion**: F8.1, F8.2 and F8.6 checked; F8.3 to F8.5 moved to T12; report sent;
+  check green.
+
+### T12 — Real-client checks
+
+- **Depends on**: T7
+- **Files**: `CHANGELOG.md`, `spec/decisions/T12.md`, `test/clients/` (any screenshot recipe it needs)
+- **Agent**: `tester` (sonnet, effort medium: verification against criteria)
+- **Priority**: medium
+- **Estimate**: M
+- **Covers**: F8
+- **Prerequisites**: P3, P4
+- **Content**: F8.3 to F8.5 over the `send-test` sends of every built-in theme × sample:
+  Gmail web on Claude's Gmail mailbox (P4); Apple Mail inside the sandbox, with the
+  Outlook.com mailbox of P3 added as an IMAP account; Outlook.com web on the same P3
+  mailbox. Screenshots in light and dark where the client offers both, sent to CCS with
+  the verification report; any recipe (sandbox `sandbox.json`, screenshot script) lives
+  under `test/clients/`. `CHANGELOG.md`: the clients checked go into T7's
+  `## Unreleased` section (F8.6). If P4 stays open, the alternative for F8.3 is decided
+  and recorded in `spec/decisions/T12.md`; F8.3 is never marked passed without Gmail.
+- **Criterion**: F8.3, F8.4 and F8.5 checked with screenshots; report sent; F8.6's
+  `CHANGELOG.md` line lists the clients checked; check green.
 
 ### T8 — Long codes on phones and the CI workflow (light batch)
 

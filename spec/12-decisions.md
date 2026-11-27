@@ -66,7 +66,7 @@
 | --- | --- | --- |
 | 1 | Majordome's Worker build can import an npm package installed from a git tag. | Vendor `dist/` into Majordome instead; the API does not change. |
 | 2 | Headless Chromium's rendering is close enough to Apple Mail's WebKit to compare with the mockups. | F2.7 compares Chromium with Chromium only; Apple Mail is checked in F8.4. |
-| 3 | Claude's vault mailbox can receive test sends and be read in Gmail web or by API. | F8.3 uses another mailbox Claude owns; recorded in `decisions/T7.md`. |
+| 3 | Claude's vault mailbox can receive test sends and be read in Gmail web or by API. | F8.3 uses another mailbox Claude owns; recorded in `decisions/T7.md`. Outcome (T7, 27 Nov 2026): wrong, the vault mailbox (Cloudflare Email Routing) has no web client and no IMAP (`decisions/T7.md` D7); F8.3 to F8.5 move to T12, on the mailboxes of P3 and P4. |
 | 4 | Classic Outlook is not installed in the Windows VM. | F8.5 relies on Outlook.com web plus the MSO rules of F4.2; open question 2 tracks it. |
 | 5 | 60 KB leaves enough room under Gmail's 102 KB clip for 30 blocks. | Lower the block limit of section 4.2. |
 
