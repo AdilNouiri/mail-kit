@@ -94,6 +94,8 @@ describe("F2.9 isAllowedUrl with loopback http:", () => {
     "http://LOCALHOST:8787/v",
     "http://LocalHost/v",
     "HTTP://localhost:8787/v",
+    "http://localhost:/",
+    "http://127.0.0.1:0080/",
   ])("accepts %s", (url) => {
     expect(isAllowedUrl(url, content)).toBe(true);
   });
