@@ -1,0 +1,34 @@
+name: check
+
+# Once per pull request, on a draft only with the label ci, never on push: claude-memory's rules/code/ci-workflows.md.
+# Light CI: browser, consumer fixture and preview tests run on the Mac in `heavy npm run check` (decision 12).
+# paths-ignore makes this a non-required check, so the job may be skipped.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+    paths-ignore: ["**/*.md", "spec/**", "docs/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: ${{ github.event_name != 'pull_request' || ((github.event.action != 'labeled' || (github.event.label.name == 'ci' && github.event.pull_request.draft == true)) && (github.event.pull_request.draft == false || (github.event.action != 'opened' && contains(github.event.pull_request.labels.*.name, 'ci'))) && !(github.event.action == 'ready_for_review' && contains(github.event.pull_request.labels.*.name, 'ci'))) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx biome ci
+      - run: npx tsc --noEmit
+      - run: npx vitest run --exclude test/lint/browser.test.ts --exclude test/lint/code-width.test.ts --exclude test/mockup-match.test.ts --exclude test/preview.test.ts

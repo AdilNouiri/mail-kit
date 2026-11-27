@@ -1,0 +1,91 @@
+[
+  {
+    "id": "majordome",
+    "sample": "majordome",
+    "lang": "fr",
+    "wordmark": "majordome",
+    "logo": {
+      "src": "assets/majordome-logo@2x.png",
+      "width": 48,
+      "height": 28
+    },
+    "colors": {
+      "brand": "#14332e",
+      "onBrand": "#eef1ec",
+      "accent": "#c8372d",
+      "onAccent": "#ffffff",
+      "canvas": "#eef1ec",
+      "card": "#ffffff",
+      "text": "#0f2420",
+      "textSoft": "#3c5a53",
+      "muted": "#56706a",
+      "subtle": "#eef1ec",
+      "link": "#c8372d",
+      "footerText": "#3c5a53"
+    },
+    "dark": {
+      "canvas": "#0f2420",
+      "card": "#14332e",
+      "text": "#eef1ec",
+      "textSoft": "#c9d5d0",
+      "muted": "#a8beb7",
+      "subtle": "#1d4740",
+      "link": "#f0857a"
+    },
+    "fonts": {
+      "display": "'Gloock', Georgia, 'Times New Roman', serif",
+      "displayWeight": 400,
+      "text": "'Figtree', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+    },
+    "webFonts": "@font-face{font-family:'Gloock';src:url(assets/Gloock-Regular.woff2) format('woff2');font-weight:400}@font-face{font-family:'Figtree';src:url(assets/Figtree-Regular.woff2) format('woff2');font-weight:400}@font-face{font-family:'Figtree';src:url(assets/Figtree-SemiBold.woff2) format('woff2');font-weight:600}",
+    "buttonRadius": 999,
+    "footer": {
+      "reason": "Vous recevez cet e-mail parce qu'une connexion à Majordome a été demandée avec cette adresse.",
+      "legal": "Majordome · majordomeapp.fr",
+      "link": {
+        "label": "Confidentialité",
+        "url": "https://majordomeapp.fr/confidentialite/"
+      }
+    }
+  },
+  {
+    "id": "dream-studio",
+    "sample": "second",
+    "lang": "en",
+    "wordmark": "DREAM STUDIO",
+    "wordmarkSpacing": "3px",
+    "colors": {
+      "brand": "#0a0a0a",
+      "onBrand": "#ffffff",
+      "accent": "#db1a83",
+      "onAccent": "#ffffff",
+      "canvas": "#f4f4f5",
+      "card": "#ffffff",
+      "text": "#111111",
+      "textSoft": "#3f3f46",
+      "muted": "#5f5f68",
+      "subtle": "#fdf2f8",
+      "link": "#c2185b",
+      "footerText": "#52525b"
+    },
+    "dark": {
+      "canvas": "#0a0a0a",
+      "card": "#18181b",
+      "text": "#ffffff",
+      "textSoft": "#d4d4d8",
+      "muted": "#a1a1aa",
+      "subtle": "#27272a",
+      "link": "#f472b6"
+    },
+    "fonts": {
+      "display": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+      "displayWeight": 700,
+      "text": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+    },
+    "buttonRadius": 10,
+    "footer": {
+      "reason": "You received this email because someone tried to sign in to Dream Studio with this address.",
+      "legal": "Dream Studio · example.com"
+    }
+  }
+]
