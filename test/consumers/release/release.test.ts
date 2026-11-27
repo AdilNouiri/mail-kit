@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { release, type ReleaseResult } from "../../../scripts/release.ts";
+import { type ReleaseResult, release } from "../../../scripts/release.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
