@@ -1,0 +1,54 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": ["**", "!spec", "!assets", "!package-lock.json", "!**/*.md"]
+  },
+  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "overrides": [
+    {
+      "includes": ["src/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noNodejsModules": "error",
+            "noUndeclaredDependencies": {
+              "level": "error",
+              "options": {
+                "devDependencies": false,
+                "peerDependencies": false,
+                "optionalDependencies": false
+              }
+            }
+          },
+          "suspicious": { "noConsole": "error" },
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "document": "src/ runs in Workers and Node: no DOM.",
+                  "window": "src/ runs in Workers and Node: no DOM.",
+                  "navigator": "src/ runs in Workers and Node: no DOM.",
+                  "process": "src/ runs in Workers: no Node globals.",
+                  "Buffer": "src/ runs in Workers: no Node globals.",
+                  "require": "src/ is ES modules only.",
+                  "fetch": "src/ does no I/O: rendering is pure (F2.8).",
+                  "Date": "src/ reads no clock: rendering is pure (F2.8).",
+                  "crypto": "src/ uses no randomness: rendering is pure (F2.8)."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
