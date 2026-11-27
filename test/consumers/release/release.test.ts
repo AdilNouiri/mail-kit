@@ -37,7 +37,7 @@ after(() => {
   rmSync(consumer, { recursive: true, force: true });
 });
 
-test("F6.1: the tag holds dist, installs from git without an install script, and dist leaves the next commit", () => {
+test("F6.1: dist/ exists only on the tagged commit, never on a branch, and the tag installs from git without an install script", () => {
   assert.equal(result.tag, `v${pkg.version}`);
   const tagged = git(result.cloneDir, "ls-tree", "-r", "--name-only", result.tag).split("\n");
   assert.ok(tagged.some((f) => f === "dist/index.js"));

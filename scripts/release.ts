@@ -83,8 +83,12 @@ function sourceFiles(dir: string): string[] {
 }
 
 function overlayWorkingTree(repo: string, cloneDir: string): void {
-  const present = git(repo, "ls-files", "-co", "--exclude-standard").split("\n").filter(Boolean);
-  const deleted = new Set(git(repo, "ls-files", "-d").split("\n").filter(Boolean));
+  const list = (...args: string[]) =>
+    git(repo, "ls-files", "-z", ...args)
+      .split("\0")
+      .filter(Boolean);
+  const present = list("-co", "--exclude-standard");
+  const deleted = new Set(list("-d"));
   for (const file of present) {
     if (deleted.has(file)) {
       rmSync(join(cloneDir, file), { force: true });
