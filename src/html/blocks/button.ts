@@ -1,7 +1,7 @@
 import { escapeAttribute, escapeHtml } from "../../escape.ts";
+import { stringsFor } from "../../i18n.ts";
 import type { ButtonBlock, Theme } from "../../types.ts";
 import { cssValue, fallbackStack } from "../css.ts";
-import { FALLBACK_LEAD } from "../fallback-lead.ts";
 import { renderLink } from "./link.ts";
 
 const HEIGHT = 48;
@@ -30,5 +30,5 @@ ${vmlButton(theme, block)}
 </tr></table>
 <!--<![endif]-->`;
   if (block.fallback === false) return button;
-  return `${button}\n${renderLink(theme, { lead: FALLBACK_LEAD[theme.lang], url: block.url })}`;
+  return `${button}\n${renderLink(theme, { lead: stringsFor(theme.lang).fallbackLead, url: block.url })}`;
 }
