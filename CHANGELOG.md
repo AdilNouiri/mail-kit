@@ -7,7 +7,9 @@ gives the migration; each release records which mail clients were checked (F8.6)
 
 - `npm run send-test` sends one theme and sample through Resend to Claude's mailboxes.
 - Mail clients checked, over the 6 built-in theme and sample pairs, without any mailbox
-  (decision 14); screenshots are in the verification report of F8:
+  (decision 14); screenshots are in the CCS verification report of F8
+  (report dc86cfbf-6dbf-4522-999f-0d8f80c29202, review page
+  `http://127.0.0.1:4500/review.html#/review/mail-kit/AdilNouiri%2Fmail-kit/spec/F8`):
   - Gmail web, Google account (variant A): emulated, never marked passed in real Gmail.
   - Gmail web, non-Google account (variant B, no `<style>` block): emulated.
   - Outlook.com web: emulated, never marked passed in real Outlook.

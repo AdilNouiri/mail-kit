@@ -1,4 +1,4 @@
-import { cp, mkdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
@@ -91,8 +91,14 @@ export async function runClientChecks(
   outDir: string,
   chromePath: string,
 ): Promise<ClientRunResult> {
-  await rm(outDir, { recursive: true, force: true });
   await mkdir(join(outDir, "png"), { recursive: true });
+  const own = /-(gmail-a|gmail-b|outlook)(-\d+)?\.(html|png)$/;
+  for (const dir of [outDir, join(outDir, "png")]) {
+    for (const entry of await readdir(dir)) {
+      if (own.test(entry)) await rm(join(dir, entry), { force: true });
+    }
+  }
+  await rm(join(outDir, "results.json"), { force: true });
   const pairs = allPairs();
   for (const theme of new Set(pairs.map((p) => p.theme))) {
     await cp(join(root, "assets", theme.id), join(outDir, "assets", theme.id), {
@@ -151,13 +157,38 @@ export async function runClientChecks(
   return { outDir, shots, emlDir };
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+/** Names of the committed .eml files that differ from what renderMail produces now. */
+export async function staleEmlFiles(): Promise<string[]> {
+  const stale: string[] = [];
+  for (const pair of allPairs()) {
+    const rendered = renderMail(pair.theme, samples[pair.sample](pair.theme.lang));
+    const expected = buildEml({
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+    });
+    const file = join(here, "apple-mail", "eml", `${pair.name}.eml`);
+    if ((await readFile(file, "utf8").catch(() => "")) !== expected) stale.push(`${pair.name}.eml`);
+  }
+  return stale;
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv.includes("--verify")) {
+  const stale = await staleEmlFiles();
+  if (stale.length > 0) {
+    console.error(`stale .eml files (run node test/clients/run.ts): ${stale.join(", ")}`);
+    process.exit(1);
+  }
+  console.log("the .eml files match renderMail");
+} else if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const chromePath = findBrowser();
   if (!chromePath) {
     console.error(missingBrowserMessage());
     process.exit(2);
   }
-  const outDir = resolve(process.argv[2] ?? join(root, "preview", "clients"));
+  const outDir = resolve(
+    process.argv.slice(2).find((a) => !a.startsWith("--")) ?? join(root, "preview", "clients"),
+  );
   const result = await runClientChecks(outDir, chromePath);
   console.log(`${result.shots.length} screenshots in ${join(outDir, "png")}`);
   console.log(`Apple Mail .eml files:${result.emlDir}`);

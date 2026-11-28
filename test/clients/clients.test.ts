@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { allPairs } from "../../scripts/preview.ts";
 import { renderMail } from "../../src/render-mail.ts";
@@ -70,16 +68,6 @@ describe("emulations over every built-in pair", () => {
 });
 
 describe("F8.4 .eml files", () => {
-  for (const pair of allPairs()) {
-    it(`${pair.name}.eml matches the rendered mail (run node test/clients/run.ts after a change)`, () => {
-      const rendered = renderMail(pair.theme, samples[pair.sample](pair.theme.lang));
-      const file = fileURLToPath(new URL(`apple-mail/eml/${pair.name}.eml`, import.meta.url));
-      expect(readFileSync(file, "utf8")).toBe(
-        buildEml({ subject: rendered.subject, html: rendered.html, text: rendered.text }),
-      );
-    });
-  }
-
   it("is multipart/alternative with a text then an html part", () => {
     const eml = buildEml({ subject: "Sujet é", html: "<p>x</p>", text: "x" });
     expect(eml).toContain("multipart/alternative");
