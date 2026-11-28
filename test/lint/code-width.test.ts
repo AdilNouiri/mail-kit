@@ -2,9 +2,13 @@ import type { Browser } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { renderCode } from "../../src/html/blocks/code.ts";
 import { renderHtml } from "../../src/html/index.ts";
+import { samples } from "../../src/samples.ts";
+import { builtInThemes as themes } from "../../src/themes/index.ts";
 import type { CodeBlock, MailContent } from "../../src/types.ts";
-import { code as codeSample, themes } from "../html/fixtures.ts";
+
 import { launch, open } from "./browser.ts";
+
+const codeSample = samples.code("en");
 
 let browser: Browser;
 
@@ -24,8 +28,8 @@ function mail(item: CodeBlock): MailContent {
   return { subject: "Code", blocks: [item] } as MailContent;
 }
 
-async function measure(item: CodeBlock, width: number) {
-  const page = await open(browser, renderHtml(themes.majordome, mail(item)), {
+async function measure(item: CodeBlock, width: number, theme = themes.majordome) {
+  const page = await open(browser, renderHtml(theme, mail(item)), {
     colorScheme: "light",
     width,
     height: 844,
@@ -58,6 +62,16 @@ describe("F4.7 long code fits a phone", () => {
     expect(result.fontSize).toBe("16px");
     expect(result.letterSpacing).toBe("2px");
   });
+
+  it.each(Object.entries(themes))(
+    "F4.7 %s: the longest code stays on one line at 390 px",
+    async (_, theme) => {
+      const result = await measure(block("ABCDEFGHJKLM", 1), 390, theme);
+      expect(result.scrollWidth).toBe(390);
+      expect(result.lines).toBe(1);
+      expect(result.inside).toBe(true);
+    },
+  );
 
   it("F4.7 the 13 to 16 character tier uses 22 px and 4 px", async () => {
     const result = await measure(block("ABCDEFGH", 1), 390);

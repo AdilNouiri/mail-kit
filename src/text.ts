@@ -5,8 +5,16 @@ import type { Block, Inline, Lang, MailContent, RichText, Theme } from "./types.
 
 const WIDTH = 76;
 
+const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+
+function graphemes(line: string): number {
+  let count = 0;
+  for (const _ of segmenter.segment(line)) count += 1;
+  return count;
+}
+
 function wrap(line: string): string[] {
-  const words = line.split(/\s+/).filter((word) => word !== "");
+  const words = line.split(/[ \t\r\n]+/).filter((word) => word !== "");
   const lines: string[] = [];
   let current = "";
   for (const word of words) {
@@ -45,8 +53,8 @@ function groupCode(code: string, group: number): string {
 function renderBlock(block: Block, lang: Lang): string[] {
   switch (block.type) {
     case "heading": {
-      const title = block.text.replace(/\s+/g, " ").trim();
-      return [title, "=".repeat(title.length)];
+      const lines = wrap(block.text);
+      return [...lines, "=".repeat(Math.max(0, ...lines.map(graphemes)))];
     }
     case "paragraph":
     case "note":
