@@ -33,6 +33,7 @@
     "test:node": "node test/consumers/prepare.ts node && node --test \"test/consumers/node/*.test.mjs\" \"test/consumers/release/*.test.ts\"",
     "test:node22": "node test/consumers/prepare.ts node && npx -y node@22.23.5 -p \"'node ' + process.version\" && npx -y node@22.23.5 --test \"test/consumers/node/*.test.mjs\"",
     "release": "node scripts/release.ts",
+    "send-test": "node scripts/send-test.ts",
     "preview": "node scripts/preview.ts",
     "test:mockup": "vitest run test/mockup-match.test.ts",
     "test:assumptions": "npm install --prefix test/assumptions/worker-file-dep --no-package-lock && vitest run --root test/assumptions/worker-file-dep && node test/assumptions/color-scheme.ts",

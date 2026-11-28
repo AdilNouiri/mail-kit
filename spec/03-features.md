@@ -236,8 +236,12 @@ Edge cases and errors:
 
 ## F8 — Test sends to real clients
 
-`npm run send-test` sends rendered mails through Resend to a mailbox Claude reads, so each
-release is checked in real clients. Milestone: M2.
+`npm run send-test` sends rendered mails through Resend to a mailbox Claude reads, and each
+release is checked against the clients that matter. No client check needs a mailbox the
+owner makes (decision 14): each criterion says whether it runs a **real renderer** (the
+client's own rendering code) or is **emulated** (the client's documented sanitizing
+applied to the rendered html, shown in the headless test Chrome). An emulated criterion
+is reported as emulated, never as passed in the real client. Milestone: M2.
 
 Acceptance criteria:
 
@@ -246,17 +250,29 @@ Acceptance criteria:
    runs, then Resend answers 2xx and the command prints the message id, never the key.
 2. **Refuses without a key or an address.** Given no key or no `--to`, when it runs, then it
    exits 2 with the missing name and sends nothing.
-3. **Gmail web checked.** Given a test send of every built-in theme × sample to Claude's
-   mailbox, when it is opened in Gmail web in the headless Chrome, then a screenshot shows
-   the banner, the button and the footer as in the preview, light, at 1280 and 390 wide.
-4. **Apple Mail checked.** Given the same sends, when they are opened in Apple Mail inside
-   the test sandbox (`sandbox run`), then screenshots in light and dark match the preview.
-5. **Outlook checked.** Given the same sends, when they are opened in Outlook (Outlook.com
-   web, and classic Outlook in the Windows VM if it is installed), then a screenshot shows
-   the banner and a button with its colour; otherwise the gap is recorded as
-   open question 2.
+3. **Gmail web emulated.** Emulated, never marked passed in real Gmail. Given every
+   built-in theme × sample rendered by `renderMail`, when a script of `test/clients/`
+   applies Gmail's documented sanitizing (variant A, Gmail web: the `prefers-color-scheme`
+   rules and the CSS properties Gmail drops removed; variant B, Gmail with a non-Gmail
+   account: the whole `<style>` block removed; each rule cited in `decisions/T12.md`) and
+   screenshots the result in the headless test Chrome, then the banner, the button and the
+   footer show as in the preview, light: variant A at 1280 and 390 wide, variant B at 1280
+   wide with nothing wider than the 600 px card.
+4. **Apple Mail renderer checked.** Real renderer, without the Mail app window. Given the
+   same mails written as `.eml` files (multipart html and text), when each is opened with
+   Apple Mail's Quick Look extension (`com.apple.mail.MailQuickLookExtension`, no account
+   needed) inside the test sandbox (`sandbox run`), with the guest in light then dark
+   appearance, then the screenshots match the preview in light and dark; if the extension
+   does not render dark, the light screenshots stand and the gap is recorded.
+5. **Outlook.com web emulated.** Emulated, never marked passed in real Outlook. Given the
+   same mails, when a script of `test/clients/` applies Outlook.com's documented rewriting
+   (each `class` and selector prefixed `x_`; the `prefers-color-scheme` rules kept, since
+   caniemail lists Outlook.com as supporting them; each rule cited in `decisions/T12.md`) and screenshots the result at 1280 wide, then
+   the banner and a button with its colour show; classic Outlook stays unchecked (open
+   question 2), covered only by the MSO rules of F4.2.
 6. **Release checklist.** Given a new tag, then `CHANGELOG.md` records which clients were
-   checked for it and links the screenshots in the verification report.
+   checked for it, each marked "real renderer" or "emulated", and links the screenshots in
+   the verification report.
 
 Edge cases and errors:
 
@@ -264,3 +280,7 @@ Edge cases and errors:
   status.
 - A send to an address outside Claude's own mailboxes is refused unless `--allow-any` is
   given (test sends never reach a real person).
+- The emulations of F8.3 and F8.5 cannot show a client's own behaviour beyond its
+  documented rules (Gmail's image proxy, forced dark mode in the Gmail and Outlook apps):
+  those gaps are listed in the verification report, never closed by asking the owner for
+  a mailbox (decision 14).

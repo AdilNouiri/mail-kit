@@ -1,7 +1,7 @@
 # mail-kit — specification
 
 - **Status**: approved
-- **Version**: 2026-11-27
+- **Version**: 2026-11-28
 - **Repository**: public GitHub repository `mail-kit` (open question 1)
 - **Tracking**: https://app.notion.com/p/425f92e578b581b39803df7f9692760f
 
@@ -15,7 +15,7 @@ folder is the single reference for every agent that builds it.
 | Milestone | Goal | Features |
 | --- | --- | --- |
 | M1 | Majordome can import a tagged version and send its magic-link mail in the shared design, with its theme | F1, F2, F3, F4, F5, F6, F7 |
-| M2 | Every mail is proven in real clients (Gmail web, Apple Mail, Outlook) by a test send, and the next tools can adopt it | F8 |
+| M2 | Every mail is sent for real and checked against Apple Mail's renderer and emulated Gmail web and Outlook.com, and the next tools can adopt it | F8 |
 
 After M1, the Majordome app session is told (SendMessage) to adopt the tag. Adoption in
 each consumer is that consumer's own change, made in its own session.

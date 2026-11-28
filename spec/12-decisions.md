@@ -35,7 +35,7 @@
     external stylesheet; the mockup generator doubles as the visual reference of F2.7.
 11. **Built-in fonts fall back by design.** Gmail and Outlook ignore web fonts, so every
     stack ends in safe families (Georgia, system sans-serif); the look must hold with the
-    fallback, which the Gmail check of F8.3 shows.
+    fallback, which the emulated Gmail check of F8.3 shows.
 12. **GitHub CI runs only the quick check; browser and consumer tests run on the Mac.**
     The CI rule (`rules/code/ci-workflows.md` of `claude-memory`) allows one Linux job on
     pull requests and `workflow_dispatch`, never on push, with lint, typecheck and unit
@@ -59,6 +59,26 @@
     each consumer rewriting its local URL to `https:` (every consumer repeats it and its
     e2e tests no longer open the link); accepting every `http:` URL (clear text on the
     network).
+14. **Client checks without mailboxes: Gmail and Outlook.com emulated, Apple Mail through
+    its Quick Look renderer (28 Nov 2026).** Claude cannot make the mailboxes of P3 and
+    P4: Microsoft's sign-up answers error code 1220 on `CheckAvailableSigninNames` for
+    every name from the automated For you Chrome (its HUMAN/PerimeterX bot protection),
+    and Google requires a phone check. The owner said on 28 Nov 2026 never to be asked to
+    create them, so P3 and P4 are dropped. F8.3 and F8.5 become emulated: each client's
+    documented sanitizing (cited per rule in `decisions/T12.md`) is applied to the
+    rendered html and shown in the headless test Chrome. That proves the layout survives
+    what the client is known to strip, notably the light layout without the `<style>`
+    block that F4 already requires, but not the client's undocumented behaviour, so an
+    emulated criterion is never reported as passed in the real client. F8.4 keeps a real
+    renderer: Apple Mail's Quick Look extension (`com.apple.mail.MailQuickLookExtension`,
+    listed by `pluginkit -m -A -p com.apple.quicklook.preview` on the Mac, 28 Nov 2026)
+    shows an `.eml` with Mail's message view and no account; whether it renders inside
+    the sandbox guest, and in dark appearance, is unverified until T12. Rejected: the Mail
+    app with no account (its "Add Account" wizard blocks, `decisions/T7.md` D7); Mail with
+    a local IMAP server in the guest (the account needs the wizard or a configuration
+    profile approved by hand); paid previews (Litmus, Email on Acid: money beyond the
+    spec, open question 2); another free webmail (it proves neither Gmail nor
+    Outlook.com); asking the owner for the accounts (refused by the owner).
 
 ## 12.2 Assumptions
 
@@ -66,7 +86,7 @@
 | --- | --- | --- |
 | 1 | Majordome's Worker build can import an npm package installed from a git tag. | Vendor `dist/` into Majordome instead; the API does not change. |
 | 2 | Headless Chromium's rendering is close enough to Apple Mail's WebKit to compare with the mockups. | F2.7 compares Chromium with Chromium only; Apple Mail is checked in F8.4. |
-| 3 | Claude's vault mailbox can receive test sends and be read in Gmail web or by API. | F8.3 uses another mailbox Claude owns; recorded in `decisions/T7.md`. Outcome (T7, 27 Nov 2026): wrong, the vault mailbox (Cloudflare Email Routing) has no web client and no IMAP (`decisions/T7.md` D7); F8.3 to F8.5 move to T12, on the mailboxes of P3 and P4. |
+| 3 | Claude's vault mailbox can receive test sends and be read in Gmail web or by API. | F8.3 uses another mailbox Claude owns; recorded in `decisions/T7.md`. Outcome (T7, 27 Nov 2026): wrong, the vault mailbox (Cloudflare Email Routing) has no web client and no IMAP (`decisions/T7.md` D7); F8.3 to F8.5 move to T12, on the mailboxes of P3 and P4. Outcome (28 Nov 2026): P3 and P4 cannot be made either and are dropped; T12 checks without a mailbox, Gmail and Outlook.com emulated, Apple Mail through its Quick Look renderer (decision 14). |
 | 4 | Classic Outlook is not installed in the Windows VM. | F8.5 relies on Outlook.com web plus the MSO rules of F4.2; open question 2 tracks it. |
 | 5 | 60 KB leaves enough room under Gmail's 102 KB clip for 30 blocks. | Lower the block limit of section 4.2. |
 

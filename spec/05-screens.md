@@ -63,7 +63,7 @@ the code block, which Majordome does not use.
 - **Outlook classic (Word engine)**: no rounded corners, the button drawn by VML with the
   same colours, the fallback stacks instead of web fonts, the card fixed at 600 px.
 - **Gmail with forced dark mode** (Gmail apps invert colours themselves and ignore the
-  media query): the banner and button keep their background colours; the result is
-  checked in M2 (F8).
+  media query): the banner and button keep their background colours; no accountless
+  check can show it (decision 14), so it stays a gap listed in the M2 verification report.
 - **A client without the `<style>` block**: the light layout at 600 px, scaled down by the
   client on a phone.
