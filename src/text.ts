@@ -5,7 +5,7 @@ import type { Block, Inline, Lang, MailContent, RichText, Theme } from "./types.
 
 const WIDTH = 76;
 
-const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
 
 function graphemes(line: string): number {
   let count = 0;

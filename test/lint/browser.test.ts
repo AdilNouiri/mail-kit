@@ -259,7 +259,7 @@ describe("F4.6 text colour pairs meet 4.5:1 in headless Chromium", () => {
       });
       try {
         const pairs = await textPairs(page);
-        expect(pairs.length).toBeGreaterThan(3);
+        expect(pairs.length).toBeGreaterThan(4);
         for (const pair of pairs) {
           expect(
             contrast(pair.color, pair.background),
