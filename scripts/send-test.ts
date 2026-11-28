@@ -94,10 +94,16 @@ export async function sendTest(
     return { code: 2, stderr: "send-test: RESEND_API_KEY is malformed" };
   }
   if (!Object.hasOwn(builtInThemes, input.theme)) {
-    return { code: 2, stderr: `send-test: unknown theme ${input.theme}` };
+    return {
+      code: 2,
+      stderr: `send-test: unknown --theme; use one of ${Object.keys(builtInThemes).join(", ")}`,
+    };
   }
   if (!Object.hasOwn(samples, input.sample)) {
-    return { code: 2, stderr: `send-test: unknown sample ${input.sample}` };
+    return {
+      code: 2,
+      stderr: `send-test: unknown --sample; use one of ${Object.keys(samples).join(", ")}`,
+    };
   }
   if (input.lang !== "fr" && input.lang !== "en") {
     return { code: 2, stderr: "send-test: --lang must be fr or en" };
@@ -105,7 +111,8 @@ export async function sendTest(
   if (!input.allowAny && !allowedMailboxes(env).includes(input.to.toLowerCase())) {
     return {
       code: 2,
-      stderr: `send-test: ${input.to} is not one of Claude's mailboxes (MAIL_KIT_TEST_MAILBOXES); pass --allow-any to send anyway`,
+      stderr:
+        "send-test: the --to address is not in MAIL_KIT_TEST_MAILBOXES; pass --allow-any to send anyway",
     };
   }
 

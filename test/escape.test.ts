@@ -158,3 +158,55 @@ describe("F2.9 isAllowedUrl with loopback http:", () => {
     }
   });
 });
+
+describe("F2.10 misleading URLs refused for every scheme", () => {
+  const all = ["https:", "mailto:", "http:loopback"] as const;
+  const bidiControls = [0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x2066, 0x2067, 0x2068, 0x2069];
+  const zeroWidth = [0x200b, 0x200c, 0x200d, 0x2060, 0xfeff];
+  const otherBidiMarks = [0x061c, 0x200e, 0x200f];
+  const misleadingCharacters = [...bidiControls, ...zeroWidth, ...otherBidiMarks].map(
+    (code): [string, string] => [
+      `U+${code.toString(16).toUpperCase().padStart(4, "0")}`,
+      String.fromCharCode(code),
+    ],
+  );
+
+  it.each([
+    "https://majordomeapp.example@evil.example/",
+    "https://user:secret@app.example.com/",
+    "https://:secret@app.example.com/",
+    "https://@app.example.com/",
+    "HTTPS://app.example.com@evil.example/v",
+    "https://app.example.com%40evil.example@evil.example/",
+    "http://localhost@evil.example/",
+    "http://evil.example@localhost/",
+    "mailto://user@example.com",
+  ])("refuses the userinfo of %j", (url) => {
+    expect(isAllowedUrl(url, all)).toBe(false);
+  });
+
+  it.each([
+    "https://a.example\\@b.example/",
+    "https://app.example.com\\evil.example/",
+    "https://app.example.com/path\\x",
+    "mailto:alice\\@example.com",
+    "http://localhost:8787\\v",
+  ])("refuses the backslash of %j", (url) => {
+    expect(isAllowedUrl(url, all)).toBe(false);
+  });
+
+  it.each(misleadingCharacters)("refuses %s in the host, path and mailto address", (_n, char) => {
+    expect(isAllowedUrl(`https://app.example${char}.com/`, all)).toBe(false);
+    expect(isAllowedUrl(`https://app.example.com/v?t=${char}1`, all)).toBe(false);
+    expect(isAllowedUrl(`https://app.example.com/#${char}`, all)).toBe(false);
+    expect(isAllowedUrl(`mailto:alice${char}@example.com`, all)).toBe(false);
+    expect(isAllowedUrl(`http://localhost:8787/v${char}`, all)).toBe(false);
+  });
+
+  it("still accepts an @ outside the authority and a plain mailto address", () => {
+    expect(isAllowedUrl("https://cdn.example.com/logo@2x.png", all)).toBe(true);
+    expect(isAllowedUrl("https://app.example.com/v?to=alice@example.com#a@b", all)).toBe(true);
+    expect(isAllowedUrl("mailto:alice.martin@example.com?subject=a//b@c", all)).toBe(true);
+    expect(isAllowedUrl("http://localhost:8787/v?to=a@b", all)).toBe(true);
+  });
+});

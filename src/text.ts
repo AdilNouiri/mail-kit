@@ -1,4 +1,6 @@
+import { checkContent } from "./html/check.ts";
 import { labelled, stringsFor } from "./i18n.ts";
+import { assertDefinedTheme } from "./theme.ts";
 import type { Block, Inline, Lang, MailContent, RichText, Theme } from "./types.ts";
 
 const WIDTH = 76;
@@ -60,7 +62,15 @@ function renderBlock(block: Block, lang: Lang): string[] {
   }
 }
 
+/** F2.12: called alone, it runs the theme and content checks `renderMail` runs. */
 export function renderText(theme: Theme, content: MailContent): string {
+  assertDefinedTheme(theme);
+  checkContent(content);
+  return textPart(theme, content);
+}
+
+/** The text part of an already checked theme and content. */
+export function textPart(theme: Theme, content: MailContent): string {
   const link = theme.footer.link;
   const footer = [
     ...wrapText(content.footerReason ?? theme.footer.reason),
