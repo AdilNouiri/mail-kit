@@ -316,7 +316,7 @@ point; the review file is quoted where a task needs its measurements.
 ### T13 — Hardening: URLs, CSS values, malformed content, send-test output
 
 - **Depends on**: T12
-- **Files**: `src/escape.ts`, `src/theme.ts`, `src/html/css.ts`, `src/html/check.ts`, `src/render-mail.ts`, `src/text.ts`, `scripts/send-test.ts`, `test/escape.test.ts`, `test/theme.test.ts`, `test/html/render.test.ts`, `test/html/fixtures.ts`, `test/send-test.test.ts`, `spec/decisions/T13.md`
+- **Files**: `src/escape.ts`, `src/theme.ts`, `src/html/css.ts`, `src/html/check.ts`, `src/render-mail.ts`, `src/text.ts`, `scripts/send-test.ts`, `test/escape.test.ts`, `test/theme.test.ts`, `test/html/render.test.ts`, `test/html/fixtures.ts`, `test/send-test.test.ts`, `test/text.test.ts`, `test/lint/compat.test.ts`, `spec/decisions/T13.md`
 - **Agent**: `implementer` (opus, effort high: security, URL validation, escaping, secret output)
 - **Sensitive**: security (URL and CSS value validation, escaping) and a secret that must never reach the output.
 - **Priority**: high
