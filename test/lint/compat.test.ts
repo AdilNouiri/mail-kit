@@ -1,13 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { fallbackStack } from "../../src/html/css.ts";
 import { renderHtml } from "../../src/html/index.ts";
-import type { Block, MailContent, Theme } from "../../src/types.ts";
-import { blockSets, themes } from "../html/fixtures.ts";
+import { renderMail } from "../../src/render-mail.ts";
+import { samples } from "../../src/samples.ts";
+import { builtInThemes as themes } from "../../src/themes/index.ts";
+import { type Block, ContentError, type MailContent, type Theme } from "../../src/types.ts";
+import { notice } from "../html/fixtures.ts";
+
+const blockSets: Record<string, (theme: Theme) => MailContent> = {
+  ...Object.fromEntries(
+    Object.entries(samples).map(([name, sample]) => [name, (theme: Theme) => sample(theme.lang)]),
+  ),
+  "notice fixture (link block, inline link)": () => notice,
+};
 
 const cases = Object.entries(themes).flatMap(([themeName, theme]) =>
   Object.entries(blockSets).map(
-    ([setName, content]) =>
-      [`${themeName} × ${setName}`, theme, content] as [string, Theme, MailContent],
+    ([setName, build]) =>
+      [`${themeName} × ${setName}`, theme, build(theme)] as [string, Theme, MailContent],
   ),
 );
 
@@ -53,7 +63,7 @@ describe("F4.2 Outlook frame", () => {
   });
 
   it("replaces Majordome-like web fonts with the fallback stacks", () => {
-    const html = renderHtml(themes.majordome, blockSets["magic-link"]);
+    const html = renderHtml(themes.majordome, samples["magic-link"]("fr"));
     expect(html).toContain(
       ".mk-heading, .mk-wordmark { font-family:Georgia, 'Times New Roman', serif !important; }",
     );
@@ -61,7 +71,7 @@ describe("F4.2 Outlook frame", () => {
       "font-family:-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;",
     );
     expect(html).toContain(
-      "@font-face{font-family:'Gloock';src:url('https://majordome.example.com/fonts/Gloock-Regular.woff2') format('woff2');font-weight:400}",
+      "@font-face{font-family:'Gloock';src:url('https://majordomeapp.fr/fonts/Gloock-Regular.woff2') format('woff2');font-weight:400}",
     );
   });
 });
@@ -112,6 +122,31 @@ describe("F4.5 size under Gmail's clip", () => {
     ];
     const blocks = Array.from({ length: 30 }, (_, index) => kinds[index % kinds.length] as Block);
     const html = renderHtml(themes.majordome, { subject: "Big", preheader: "p", blocks });
+    expect(new TextEncoder().encode(html).length).toBeLessThan(60 * 1024);
+  });
+});
+
+describe("F4.8 oversized mail refused", () => {
+  it("F4.8 refuses 30 buttons with 2,000-character URLs", () => {
+    const blocks: Block[] = Array.from({ length: 30 }, () => ({
+      type: "button",
+      label: "Open",
+      url: `https://app.example.com/${"a".repeat(2000)}`,
+    }));
+    for (const theme of Object.values(themes)) {
+      try {
+        renderMail(theme, { subject: "Big", blocks });
+        expect.unreachable("renderMail should refuse an oversized mail");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ContentError);
+        expect((error as ContentError).field).toBe("html");
+        expect((error as ContentError).message).toMatch(/\d{6} bytes/);
+      }
+    }
+  });
+
+  it.each(cases)("F4.8 accepts %s, under 60 KB", (_, theme, content) => {
+    const { html } = renderMail(theme, content);
     expect(new TextEncoder().encode(html).length).toBeLessThan(60 * 1024);
   });
 });
