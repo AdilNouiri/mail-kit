@@ -1,10 +1,20 @@
+import { checkContent } from "./html/check.ts";
 import { labelled, stringsFor } from "./i18n.ts";
+import { assertDefinedTheme } from "./theme.ts";
 import type { Block, Inline, Lang, MailContent, RichText, Theme } from "./types.ts";
 
 const WIDTH = 76;
 
+const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+
+function graphemes(line: string): number {
+  let count = 0;
+  for (const _ of segmenter.segment(line)) count += 1;
+  return count;
+}
+
 function wrap(line: string): string[] {
-  const words = line.split(/\s+/).filter((word) => word !== "");
+  const words = line.split(/[ \t\r\n]+/).filter((word) => word !== "");
   const lines: string[] = [];
   let current = "";
   for (const word of words) {
@@ -43,8 +53,8 @@ function groupCode(code: string, group: number): string {
 function renderBlock(block: Block, lang: Lang): string[] {
   switch (block.type) {
     case "heading": {
-      const title = block.text.replace(/\s+/g, " ").trim();
-      return [title, "=".repeat(title.length)];
+      const lines = wrap(block.text);
+      return [...lines, "=".repeat(Math.max(0, ...lines.map(graphemes)))];
     }
     case "paragraph":
     case "note":
@@ -60,7 +70,15 @@ function renderBlock(block: Block, lang: Lang): string[] {
   }
 }
 
+/** F2.12: called alone, it runs the theme and content checks `renderMail` runs. */
 export function renderText(theme: Theme, content: MailContent): string {
+  assertDefinedTheme(theme);
+  checkContent(content);
+  return textPart(theme, content);
+}
+
+/** The text part of an already checked theme and content. */
+export function textPart(theme: Theme, content: MailContent): string {
   const link = theme.footer.link;
   const footer = [
     ...wrapText(content.footerReason ?? theme.footer.reason),

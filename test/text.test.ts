@@ -1,26 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { renderMail } from "../src/render-mail.ts";
 import { renderText } from "../src/text.ts";
-import { majordome } from "../src/themes/majordome.ts";
+import { defineTheme } from "../src/theme.ts";
+import { majordome, majordomeInput } from "../src/themes/majordome.ts";
 import { ContentError, type Lang, type MailContent, type Theme } from "../src/types.ts";
 
 function theme(lang: Lang): Theme {
-  return {
+  return defineTheme({
+    ...majordomeInput,
     id: "test",
     wordmark: "Test",
-    wordmarkSpacing: 0,
     lang,
-    colors: {},
-    dark: {},
-    fonts: { display: "serif", displayWeight: 700, text: "sans-serif" },
+    fonts: { display: "serif", text: "sans-serif" },
     webFonts: [],
-    buttonRadius: 8,
     footer: {
       reason: "You received this mail because you asked to sign in.",
       legal: "Example Co, 1 Example Street.",
       link: { label: "Help", url: "https://example.com/help" },
     },
-  } as unknown as Theme;
+  });
 }
 
 const sample: MailContent = {
@@ -117,6 +115,39 @@ describe("renderText", () => {
       ],
     });
     expect(text.startsWith("Title\n=====\n\nBody\n\n--\n")).toBe(true);
+  });
+
+  it("F3.3 and F3.5 wrap a long heading at 76 and underline its longest line", () => {
+    const title = Array.from({ length: 14 }, () => "heading").join(" ");
+    const lines = renderText(theme("en"), {
+      subject: "s",
+      blocks: [{ type: "heading", text: title }],
+    }).split("\n");
+    const first = lines.findIndex((line) => /^=+$/.test(line));
+    const heading = lines.slice(0, first);
+    expect(heading.length).toBeGreaterThan(1);
+    for (const line of heading) expect(line.length).toBeLessThanOrEqual(76);
+    expect(lines[first]).toBe("=".repeat(Math.max(...heading.map((line) => line.length))));
+  });
+
+  it("F3.5 counts grapheme clusters, an emoji with a skin tone is one", () => {
+    const text = renderText(theme("en"), {
+      subject: "s",
+      blocks: [{ type: "heading", text: "Hi 👍🏽 👨‍👩‍👧" }],
+    });
+    expect(text.startsWith("Hi 👍🏽 👨‍👩‍👧\n======\n")).toBe(true);
+  });
+
+  it("F3.3 keeps U+00A0 and U+202F inside a word", () => {
+    const text = renderText(theme("fr"), {
+      subject: "s",
+      blocks: [
+        { type: "heading", text: "Prix : 5 €" },
+        { type: "paragraph", content: "Vraiment ? Oui !" },
+      ],
+    });
+    expect(text.startsWith("Prix : 5 €\n")).toBe(true);
+    expect(text).toContain("Vraiment ? Oui !\n");
   });
 
   it("renders code, divider and footer edge cases", () => {

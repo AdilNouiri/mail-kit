@@ -93,6 +93,37 @@ describe("F8.2 refuses without a key or an address", () => {
   });
 });
 
+describe("F8.7 option values never echoed", () => {
+  const withOption = (name: string, value: string) => {
+    const a = [...args];
+    a[a.indexOf(name) + 1] = value;
+    return a;
+  };
+
+  it.each([
+    ["--theme", "majordome, dream-studio"],
+    ["--sample", "magic-link, code, notice"],
+    ["--lang", "fr or en"],
+  ])("lists the accepted values for an unknown %s, never the value", async (name, accepted) => {
+    const d = deps([]);
+    const a = name === "--lang" ? [...args, "--lang", KEY] : withOption(name, KEY);
+    const result = await sendTest(parseArgs(a), env, d.deps);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain(accepted);
+    expect(`${result.stdout}${result.stderr}`).not.toContain(KEY.slice(3));
+    expect(d.calls).toHaveLength(0);
+  });
+
+  it("says a --to outside the allow-list is not in MAIL_KIT_TEST_MAILBOXES, never the value", async () => {
+    const d = deps([]);
+    const result = await sendTest(parseArgs(withOption("--to", KEY)), env, d.deps);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("not in MAIL_KIT_TEST_MAILBOXES");
+    expect(`${result.stdout}${result.stderr}`).not.toContain(KEY.slice(3));
+    expect(d.calls).toHaveLength(0);
+  });
+});
+
 describe("F8 mailbox allow-list", () => {
   it("refuses an address outside the allow-list unless --allow-any is given", async () => {
     const d = deps([json(200, { id: "msg_9" })]);

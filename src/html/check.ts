@@ -40,16 +40,31 @@ function checkUrl(value: unknown, field: string, blockIndex: number): void {
   }
 }
 
+/** The words the reader sees, once the inlines are known to be well formed. */
+function inlineWords(inline: unknown): string {
+  if (isString(inline)) return inline;
+  const item = inline as Record<string, string>;
+  return "bold" in item ? (item.bold as string) : (item.text as string);
+}
+
 function checkRichText(content: RichText, blockIndex: number): void {
-  if (isString(content)) return;
+  if (isString(content)) {
+    checkVisible(content, blockIndex);
+    return;
+  }
   if (!Array.isArray(content)) {
     throw new ContentError("content", "content must be a string or an array", blockIndex);
   }
-  for (const inline of content as readonly unknown[]) {
+  for (let index = 0; index < content.length; index++) {
+    const inline: unknown = content[index];
     if (isString(inline)) continue;
     if (typeof inline === "object" && inline !== null) {
       const item = inline as Record<string, unknown>;
-      if (isString(item.bold)) continue;
+      // The renderers test `"bold" in inline` first, so a non-string bold must stop here.
+      if ("bold" in item) {
+        if (isString(item.bold)) continue;
+        throw new ContentError("content", "an inline's bold must be a string", blockIndex);
+      }
       if (isString(item.text) && "url" in item) {
         checkUrl(item.url, "content", blockIndex);
         continue;
@@ -60,6 +75,16 @@ function checkRichText(content: RichText, blockIndex: number): void {
       "an inline must be a string, { bold } or { text, url }",
       blockIndex,
     );
+  }
+  checkVisible(content.map(inlineWords).join(""), blockIndex);
+}
+
+/** Whitespace, format characters (U+200B, U+2060...) and other characters that draw nothing. */
+const INVISIBLE_ONLY = /^[\s\p{Cf}\p{Default_Ignorable_Code_Point}]*$/u;
+
+function checkVisible(text: string, blockIndex: number): void {
+  if (INVISIBLE_ONLY.test(text)) {
+    throw new ContentError("content", "content must not be empty or blank", blockIndex);
   }
 }
 
@@ -95,30 +120,35 @@ function checkBlock(block: Block, index: number): void {
     }
     case "divider":
       return;
-    default:
-      throw new ContentError(
-        "type",
-        `unknown block type ${JSON.stringify((block as { type?: unknown }).type)}`,
-        index,
-      );
+    default: {
+      // JSON.stringify throws on a BigInt or a circular value, so only a string is quoted.
+      const type: unknown = (block as { type?: unknown }).type;
+      const shown = typeof type === "string" ? JSON.stringify(type) : `of type ${typeof type}`;
+      throw new ContentError("type", `unknown block type ${shown}`, index);
+    }
   }
 }
 
 /** The content rules of 04-data-model.md 4.2 and 4.3, F2.4 and section 8. */
 export function checkContent(content: MailContent): void {
+  if (typeof content !== "object" || content === null) {
+    throw new ContentError("content", "the mail content must be an object");
+  }
   checkText(content.subject, "subject", 1, 200);
   if (/[\r\n]/.test(content.subject)) {
     throw new ContentError("subject", "subject must not hold a line break");
   }
   if (content.preheader !== undefined) checkText(content.preheader, "preheader", 0, 140);
-  if (content.footerReason !== undefined) checkText(content.footerReason, "footerReason", 0, 300);
+  if (content.footerReason !== undefined) checkText(content.footerReason, "footerReason", 1, 300);
   if (!Array.isArray(content.blocks) || content.blocks.length < 1 || content.blocks.length > 30) {
     throw new ContentError("blocks", "blocks must hold 1 to 30 blocks");
   }
-  content.blocks.forEach((block, index) => {
+  // By index, not forEach: forEach skips the holes of a sparse array.
+  for (let index = 0; index < content.blocks.length; index++) {
+    const block: unknown = content.blocks[index];
     if (typeof block !== "object" || block === null) {
       throw new ContentError("type", "a block must be an object", index);
     }
-    checkBlock(block, index);
-  });
+    checkBlock(block as Block, index);
+  }
 }

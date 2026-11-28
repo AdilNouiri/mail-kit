@@ -20,6 +20,7 @@ function darkTextRules(theme: Theme, prefix: string): string {
     `    ${sel(".mk-code", ".mk-note")} { color:${d.text} !important; }`,
     `    ${sel(".mk-small", ".mk-footer")} { color:${d.muted} !important; }`,
     `    ${sel(".mk-small a", ".mk-link")} { color:${d.link} !important; }`,
+    `    ${sel(".mk-note .mk-link")} { color:${d.text} !important; }`,
     `    ${sel(".mk-footer a")} { color:${d.muted} !important; }`,
   ].join("\n");
 }
