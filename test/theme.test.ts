@@ -374,6 +374,17 @@ describe("F2.10 misleading theme URLs refused (decision 15)", () => {
   });
 });
 
+describe("F1 a sparse webFonts array is refused", () => {
+  const font = { family: "Gloock", url: "https://example.com/fonts/Gloock.woff2", weight: 400 };
+
+  it("names the hole's path", () => {
+    expect(pathOf(mutate((t) => (t.webFonts = new Array(1))))).toBe("webFonts[0]");
+    const afterFont: unknown[] = [font];
+    afterFont[2] = font;
+    expect(pathOf(mutate((t) => (t.webFonts = afterFont)))).toBe("webFonts[1]");
+  });
+});
+
 describe("F1.8 only defined themes render (decision 15)", () => {
   function themePathOf(run: () => unknown): string {
     try {
