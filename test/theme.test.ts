@@ -1,8 +1,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { cssValue } from "../src/html/css.ts";
 import { labelled, stringsFor } from "../src/i18n.ts";
+import { renderMail } from "../src/render-mail.ts";
+import { renderText } from "../src/text.ts";
 import { defineTheme } from "../src/theme.ts";
-import { ThemeError, type ThemeInput } from "../src/types.ts";
+import { majordome } from "../src/themes/majordome.ts";
+import { type Theme, ThemeError, type ThemeInput } from "../src/types.ts";
+import { magicLink } from "./html/fixtures.ts";
 
 interface RawTheme extends Record<string, unknown> {
   id: string;
@@ -299,6 +304,119 @@ describe("F2.9 theme URLs stay https: only, loopback http: included (decision 13
 describe("F1.6 shape of the two real themes (the built-in modules are tested by T4)", () => {
   it.each(raw.map((theme) => [theme.id, theme] as const))("%s passes", (_id, theme) => {
     expect(() => defineTheme(toInput(theme))).not.toThrow();
+  });
+});
+
+describe("F1.7 CSS values cannot end a declaration", () => {
+  const characters: [string, string][] = [
+    ["&", "&"],
+    [";", ";"],
+    ["{", "{"],
+    ["}", "}"],
+    ["<", "<"],
+    [">", ">"],
+    ["\\", "\\"],
+    ["U+0000", "\u0000"],
+    ["U+0009", "\t"],
+    ["U+000A", "\n"],
+    ["U+001F", "\u001f"],
+    ["U+007F", "\u007f"],
+  ];
+
+  it.each(characters)("refuses %s in fonts.display, fonts.text and webFonts[].family", (_n, c) => {
+    expect(pathOf(mutate((t) => (t.fonts.display = `Gloock${c}x, serif`)))).toBe("fonts.display");
+    expect(pathOf(mutate((t) => (t.fonts.text = `Figtree${c}, sans-serif`)))).toBe("fonts.text");
+    const font = (family: string) => ({
+      family,
+      url: "https://example.com/fonts/Gloock.woff2",
+      weight: 400,
+    });
+    expect(pathOf(mutate((t) => (t.webFonts = [font("Gloock"), font(`Gl${c}ock`)])))).toBe(
+      "webFonts[1].family",
+    );
+  });
+
+  it("refuses the review's entity that would become ; inside a style attribute", () => {
+    const stack = "x&#59 background:url(https://evil.example/t)&#59 y, sans-serif";
+    expect(pathOf(mutate((t) => (t.fonts.text = stack)))).toBe("fonts.text");
+  });
+
+  it("cssValue strips &, so an entity can never decode to ; in a style attribute", () => {
+    expect(cssValue("x&#59 y&amp;z, sans-serif")).toBe("x#59 yampz, sans-serif");
+    expect(cssValue(`a;b{c}d<e>f\\g"h`)).toBe("abcdefg'h");
+  });
+
+  it("still accepts quotes, hyphens and spaces in font stacks", () => {
+    expect(() =>
+      defineTheme(mutate((t) => (t.fonts.text = `"Segoe UI", -apple-system, 'A B', sans-serif`))),
+    ).not.toThrow();
+  });
+});
+
+describe("F2.10 misleading theme URLs refused (decision 15)", () => {
+  it.each([
+    "https://majordomeapp.example@evil.example/logo.png",
+    "https://@example.com/logo.png",
+    "https://a.example\\@b.example/logo.png",
+    `https://example.com/lo${String.fromCharCode(0x202e)}go.png`,
+    `https://example.com/lo${String.fromCharCode(0x200b)}go.png`,
+    `https://exa${String.fromCharCode(0x2066)}mple.com/logo.png`,
+    `https://example.com/logo.png${String.fromCharCode(0xfeff)}`,
+  ])("refuses logo.url %j with a ThemeError on its path", (url) => {
+    expect(pathOf(mutate((t) => (t.logo = { url, width: 48, height: 28 })))).toBe("logo.url");
+  });
+
+  it("refuses them in webFonts[].url and footer.link.url too", () => {
+    const font = { family: "Gloock", url: "https://a@example.com/f.woff2", weight: 400 };
+    expect(pathOf(mutate((t) => (t.webFonts = [font])))).toBe("webFonts[0].url");
+    const link = { label: "Help", url: "https://example.com\\@evil.example/help" };
+    expect(pathOf(mutate((t) => (t.footer.link = link)))).toBe("footer.link.url");
+  });
+});
+
+describe("F1 a sparse webFonts array is refused", () => {
+  const font = { family: "Gloock", url: "https://example.com/fonts/Gloock.woff2", weight: 400 };
+
+  it("names the hole's path", () => {
+    expect(pathOf(mutate((t) => (t.webFonts = new Array(1))))).toBe("webFonts[0]");
+    const afterFont: unknown[] = [font];
+    afterFont[2] = font;
+    expect(pathOf(mutate((t) => (t.webFonts = afterFont)))).toBe("webFonts[1]");
+  });
+});
+
+describe("F1.8 only defined themes render (decision 15)", () => {
+  function themePathOf(run: () => unknown): string {
+    try {
+      run();
+    } catch (error) {
+      expect(error).toBeInstanceOf(ThemeError);
+      return (error as ThemeError).path;
+    }
+    throw new Error("the theme was accepted");
+  }
+
+  const cast = { ...base(), wordmarkSpacing: 0, lang: "en", buttonRadius: 8, webFonts: [] };
+  const fakes: [string, unknown][] = [
+    ["a cast object", cast],
+    ["a spread copy", { ...majordome }],
+    ["a structured clone", structuredClone(majordome)],
+    ["an object inheriting from a theme", Object.create(majordome)],
+    ["null", null],
+    ["a string", "majordome"],
+  ];
+
+  it.each(fakes)("renderMail refuses %s with path theme", (_name, theme) => {
+    expect(themePathOf(() => renderMail(theme as Theme, magicLink))).toBe("theme");
+  });
+
+  it.each(fakes)("renderText refuses %s with path theme", (_name, theme) => {
+    expect(themePathOf(() => renderText(theme as Theme, magicLink))).toBe("theme");
+  });
+
+  it("renders a theme defineTheme returned, built-in or not", () => {
+    expect(renderMail(majordome, magicLink).html).toContain("<html");
+    expect(renderText(defineTheme(base()), magicLink)).toContain("Votre lien de connexion");
   });
 });
 

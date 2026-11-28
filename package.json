@@ -1,6 +1,6 @@
 {
   "name": "mail-kit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "One transactional email design for every tool, themed per tool: theme and blocks in, subject, html and text out.",
   "private": true,
   "type": "module",
@@ -37,7 +37,7 @@
     "preview": "node scripts/preview.ts",
     "test:mockup": "vitest run test/mockup-match.test.ts",
     "test:assumptions": "npm install --prefix test/assumptions/worker-file-dep --no-package-lock && vitest run --root test/assumptions/worker-file-dep && node test/assumptions/color-scheme.ts",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run test:worker && npm run test:node && npm run test:node22 && npm run preview && npm run test:mockup"
+    "check": "npm run lint && npm run typecheck && npm run test && npm run test:worker && npm run test:node && npm run test:node22 && npm run preview && npm run test:mockup && node test/clients/run.ts --verify"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.9",

@@ -8,8 +8,8 @@ signatures below are frozen in T0 (`src/types.ts`, `src/index.ts`).
 | Export | Signature | Errors |
 | --- | --- | --- |
 | `mail-kit` → `defineTheme` | `(input: ThemeInput) => Theme` | `ThemeError { path: string; message: string }` (F1) |
-| `mail-kit` → `renderMail` | `(theme: Theme, content: MailContent) => RenderedMail` | `ContentError { blockIndex?: number; field: string; message: string }` (F2) |
-| `mail-kit` → `renderText` | `(theme: Theme, content: MailContent) => string` | none of its own: it expects content that `renderMail` accepts (`renderMail` runs the checks first); exported for tests |
+| `mail-kit` → `renderMail` | `(theme: Theme, content: MailContent) => RenderedMail` | `ContentError { blockIndex?: number; field: string; message: string }` (F2, F4.8: `field` `html` when the html passes 100,000 bytes); `ThemeError` with `path` `theme` for a theme `defineTheme` did not return (F1.8) |
+| `mail-kit` → `renderText` | `(theme: Theme, content: MailContent) => string` | the same `ContentError` and `ThemeError` as `renderMail`, from the same content checks (F2.12); exported for tests |
 | `mail-kit` → types | `Theme`, `ThemeInput`, `MailContent`, `Block`, `Inline`, `RenderedMail`, `ThemeError`, `ContentError`, `VERSION` | — |
 | `mail-kit/themes/majordome` | `export const majordome: Theme` | — |
 | `mail-kit/themes/dream-studio` | `export const dreamStudio: Theme` | — |
@@ -40,4 +40,4 @@ const { subject, html, text } = renderMail(majordome, {
 | Command | Input | Output | Errors |
 | --- | --- | --- | --- |
 | `npm run preview` | — | `preview/` (F5) | exit 1 with the install command when no headless Chromium |
-| `npm run send-test -- --theme <id> --sample <name> --to <address> [--lang fr\|en] [--allow-any]` (`--lang` defaults to `fr`) | `RESEND_API_KEY`, `MAIL_KIT_TEST_FROM` and `MAIL_KIT_TEST_MAILBOXES` (the allow-list: Claude-owned addresses, comma-separated, case-insensitive; empty refuses every `--to` unless `--allow-any`) in the environment | the Resend message id | exit 2 on an unknown option, a missing input, a malformed `RESEND_API_KEY` (the key is never printed), an unknown theme, sample or `--lang`, or a `--to` outside the allow-list without `--allow-any`; exit 1 on a non-2xx answer, with the status only (F8) |
+| `npm run send-test -- --theme <id> --sample <name> --to <address> [--lang fr\|en] [--allow-any]` (`--lang` defaults to `fr`) | `RESEND_API_KEY`, `MAIL_KIT_TEST_FROM` and `MAIL_KIT_TEST_MAILBOXES` (the allow-list: Claude-owned addresses, comma-separated, case-insensitive; empty refuses every `--to` unless `--allow-any`) in the environment | the Resend message id | exit 2 on an unknown option, a missing input, a malformed `RESEND_API_KEY` (the key is never printed), an unknown theme, sample or `--lang`, or a `--to` outside the allow-list without `--allow-any`, never printing the value given (F8.7); exit 1 on a non-2xx answer, with the status only (F8) |

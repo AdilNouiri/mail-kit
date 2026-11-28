@@ -5,7 +5,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { type ReleaseResult, release } from "../../../scripts/release.ts";
+import {
+  assertChangelog,
+  type ReleaseResult,
+  release,
+  releaserIdentity,
+} from "../../../scripts/release.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
@@ -98,4 +103,40 @@ test("F6.5: the version comment of a rendered mail matches package.json", async 
 test("a dry run creates no tag and no dist in the repository", () => {
   assert.equal(git(root, "tag", "--list", result.tag), "");
   assert.equal(existsSync(join(root, "dist")), false);
+});
+
+test("F6.6: a version without a CHANGELOG section is refused", () => {
+  assert.doesNotThrow(() => assertChangelog("# Changelog\n\n## 0.1.1\n\n- x\n", "0.1.1"));
+  assert.throws(() => assertChangelog("# Changelog\n\n## 0.1.0\n", "0.1.1"), /0\.1\.1/);
+  assert.throws(() => assertChangelog("## 0.1.10\n", "0.1.1"), /0\.1\.1/);
+  assertChangelog(readFileSync(join(root, "CHANGELOG.md"), "utf8"), pkg.version);
+});
+
+test("F6.6: a real release refuses when git has no identity, and uses the releaser's own", () => {
+  const repo = mkdtempSync(join(tmpdir(), "mail-kit-identity-"));
+  try {
+    git(repo, "init", "--quiet");
+    const env = process.env;
+    const saved = { ...env };
+    env.GIT_CONFIG_GLOBAL = "/dev/null";
+    env.GIT_CONFIG_SYSTEM = "/dev/null";
+    try {
+      assert.throws(() => releaserIdentity(repo), /identity/);
+      git(repo, "config", "user.name", "Someone");
+      git(repo, "config", "user.email", "someone@example.com");
+      assert.equal(releaserIdentity(repo).GIT_AUTHOR_EMAIL, "someone@example.com");
+    } finally {
+      for (const k of ["GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM"]) {
+        if (saved[k] === undefined) delete env[k];
+        else env[k] = saved[k];
+      }
+    }
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test("F8.8: the check script verifies the .eml files after test:mockup", () => {
+  const check = pkg.scripts.check ?? "";
+  assert.ok(check.endsWith("npm run test:mockup && node test/clients/run.ts --verify"), check);
 });

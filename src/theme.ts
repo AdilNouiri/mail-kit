@@ -64,8 +64,24 @@ function httpsUrlAt(value: unknown, path: string, extensions?: readonly string[]
   return value;
 }
 
+/**
+ * F1.7: `cssValue` strips `; { } < > \` and `&`; refusing them here, with the control
+ * characters (a newline ends the `@font-face` string), tells the developer instead.
+ */
+function cssTextAt(value: unknown, path: string, min: number, max: number): string {
+  const text = stringAt(value, path, min, max);
+  const hasControl = [...text].some((char) => {
+    const code = char.charCodeAt(0);
+    return code <= 0x1f || code === 0x7f;
+  });
+  if (hasControl || /[&;{}<>\\]/.test(text)) {
+    return fail(path, "must not hold &, a control character, ;, {, }, <, > or \\");
+  }
+  return text;
+}
+
 function fontAt(value: unknown, path: string): string {
-  const stack = stringAt(value, path, 1, 500);
+  const stack = cssTextAt(value, path, 1, 500);
   const last = stack.split(",").pop()?.trim().toLowerCase() ?? "";
   if (!GENERIC_FAMILIES.includes(last)) {
     return fail(path, "must end with a generic family: serif, sans-serif or monospace");
@@ -121,6 +137,18 @@ function readColors<K extends string>(
   const result = {} as Record<K, string>;
   for (const key of keys) result[key] = hexAt(source[key], join(path, key));
   return result;
+}
+
+const definedThemes = new WeakSet<object>();
+
+/**
+ * F1.8: the `Theme` brand exists at the type level only, so a cast or a copy would reach
+ * `bgcolor` and `style` unvalidated; only an object `defineTheme` returned renders.
+ */
+export function assertDefinedTheme(theme: unknown): void {
+  if (typeof theme !== "object" || theme === null || !definedThemes.has(theme)) {
+    fail("theme", "must be a theme returned by defineTheme");
+  }
 }
 
 export function defineTheme(input: ThemeInput): Theme {
@@ -179,7 +207,8 @@ export function defineTheme(input: ThemeInput): Theme {
   if (source.webFonts !== undefined) {
     if (!Array.isArray(source.webFonts)) fail("webFonts", "must be an array");
     if (source.webFonts.length > 4) fail("webFonts", "must hold at most 4 fonts");
-    webFonts = source.webFonts.map((entry: unknown, index: number) => {
+    // Array.from, not map: map skips the holes of a sparse array, so they were never checked.
+    webFonts = Array.from(source.webFonts as unknown[], (entry: unknown, index: number) => {
       const path = `webFonts[${index}]`;
       const raw = objectAt(entry, path, ["family", "url", "weight"]);
       const weight = raw.weight;
@@ -187,7 +216,7 @@ export function defineTheme(input: ThemeInput): Theme {
         fail(`${path}.weight`, "must be 100, 200, ... or 900");
       }
       return {
-        family: stringAt(raw.family, `${path}.family`, 1, 100),
+        family: cssTextAt(raw.family, `${path}.family`, 1, 100),
         url: httpsUrlAt(raw.url, `${path}.url`, [".woff2"]),
         weight: weight as number,
       };
@@ -240,5 +269,6 @@ export function defineTheme(input: ThemeInput): Theme {
     buttonRadius,
     footer,
   };
-  return deepFreeze(theme) as unknown as Theme;
+  definedThemes.add(deepFreeze(theme));
+  return theme as unknown as Theme;
 }

@@ -15,7 +15,7 @@ folder is the single reference for every agent that builds it.
 | Milestone | Goal | Features |
 | --- | --- | --- |
 | M1 | Majordome can import a tagged version and send its magic-link mail in the shared design, with its theme | F1, F2, F3, F4, F5, F6, F7 |
-| M2 | Every mail is sent for real and checked against Apple Mail's renderer and emulated Gmail web and Outlook.com, and the next tools can adopt it | F8 |
+| M2 | Every mail is sent for real and checked against emulations of Gmail web, Outlook.com and Apple Mail (no real-client check, decision 14), and the next tools can adopt it | F8 |
 
 After M1, the Majordome app session is told (SendMessage) to adopt the tag. Adoption in
 each consumer is that consumer's own change, made in its own session.

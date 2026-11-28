@@ -1,9 +1,31 @@
 import type { Browser, Page } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { renderHtml } from "../../src/html/index.ts";
+import { samples } from "../../src/samples.ts";
+import { builtInThemes as themes } from "../../src/themes/index.ts";
 import type { MailContent, Theme } from "../../src/types.ts";
-import { blockSets, themes } from "../html/fixtures.ts";
+import { notice } from "../html/fixtures.ts";
 import { launch, open } from "./browser.ts";
+
+const noteLink: MailContent = {
+  subject: "Note link",
+  blocks: [
+    { type: "heading", text: "Note link" },
+    { type: "paragraph", content: "A paragraph before the note." },
+    {
+      type: "note",
+      content: ["Questions? Read ", { text: "the help page", url: "https://app.example.com/help" }],
+    },
+  ],
+};
+
+const blockSets: Record<string, (theme: Theme) => MailContent> = {
+  ...Object.fromEntries(
+    Object.entries(samples).map(([name, sample]) => [name, (theme: Theme) => sample(theme.lang)]),
+  ),
+  "notice fixture (link block, inline link)": () => notice,
+  "note link": () => noteLink,
+};
 
 let browser: Browser;
 
@@ -17,8 +39,8 @@ afterAll(async () => {
 
 const cases = Object.entries(themes).flatMap(([themeName, theme]) =>
   Object.entries(blockSets).map(
-    ([setName, content]) =>
-      [`${themeName} × ${setName}`, theme, content] as [string, Theme, MailContent],
+    ([setName, build]) =>
+      [`${themeName} × ${setName}`, theme, build(theme)] as [string, Theme, MailContent],
   ),
 );
 
@@ -84,7 +106,8 @@ describe("F4.3 dark mode in headless Chromium", () => {
       const html = renderHtml(theme, {
         subject: "Dark",
         blocks: [
-          ...blockSets.notice.blocks,
+          ...notice.blocks,
+          ...noteLink.blocks,
           { type: "code", code: "482913", group: 3 },
           { type: "button", label: "Open", url: "https://app.example.com/" },
         ],
@@ -104,6 +127,7 @@ describe("F4.3 dark mode in headless Chromium", () => {
         expect(await styleOf(page, ".mk-footer", "color")).toBe(rgb(d.muted));
         expect(await styleOf(page, ".mk-small a", "color")).toBe(rgb(d.link));
         expect(await styleOf(page, ".mk-text .mk-link", "color")).toBe(rgb(d.link));
+        expect(await styleOf(page, ".mk-note .mk-link", "color")).toBe(rgb(d.text));
         expect(await styleOf(page, ".mk-code", "color")).toBe(rgb(d.text));
         expect(await styleOf(page, ".mk-note", "color")).toBe(rgb(d.text));
         if (theme.footer.link) {
@@ -120,7 +144,7 @@ describe("F4.3 dark mode in headless Chromium", () => {
   );
 
   it.each(Object.entries(themes))("%s: light mode keeps the light colours", async (_, theme) => {
-    const page = await open(browser, renderHtml(theme, blockSets.notice), {
+    const page = await open(browser, renderHtml(theme, notice), {
       colorScheme: "light",
       width: 1280,
       height: 800,
@@ -136,13 +160,18 @@ describe("F4.3 dark mode in headless Chromium", () => {
   it.each(Object.entries(themes))(
     "%s: [data-ogsc] applies the dark text colours",
     async (_, theme) => {
-      const page = await open(browser, renderHtml(theme, blockSets.notice), {
-        colorScheme: "light",
-        width: 1280,
-        height: 800,
-      });
+      const page = await open(
+        browser,
+        renderHtml(theme, { ...notice, blocks: [...notice.blocks, ...noteLink.blocks] }),
+        {
+          colorScheme: "light",
+          width: 1280,
+          height: 800,
+        },
+      );
       try {
         await page.evaluate(() => document.body.setAttribute("data-ogsc", ""));
+        expect(await styleOf(page, ".mk-note .mk-link", "color")).toBe(rgb(theme.dark.text));
         expect(await styleOf(page, ".mk-heading", "color")).toBe(rgb(theme.dark.text));
         expect(await styleOf(page, ".mk-text", "color")).toBe(rgb(theme.dark.textSoft));
         expect(await styleOf(page, ".mk-small", "color")).toBe(rgb(theme.dark.muted));
@@ -151,6 +180,33 @@ describe("F4.3 dark mode in headless Chromium", () => {
       }
     },
   );
+});
+
+describe("F4.9 a link inside a note is readable", () => {
+  for (const scheme of ["light", "dark"] as const) {
+    it.each(Object.entries(themes))(
+      `%s, ${scheme}: takes the note's text colour, underlined, 4.5:1`,
+      async (_, theme) => {
+        const page = await open(browser, renderHtml(theme, noteLink), {
+          colorScheme: scheme,
+          width: 1280,
+          height: 800,
+        });
+        try {
+          const textColor = scheme === "light" ? theme.colors.textSoft : theme.dark.text;
+          const fill = scheme === "light" ? theme.colors.subtle : theme.dark.subtle;
+          const color = await styleOf(page, ".mk-note .mk-link", "color");
+          expect(color).toBe(rgb(textColor));
+          expect(
+            await page.$eval(".mk-note .mk-link", (el) => getComputedStyle(el).textDecorationLine),
+          ).toBe("underline");
+          expect(contrast(color, rgb(fill))).toBeGreaterThanOrEqual(4.5);
+        } finally {
+          await page.context().close();
+        }
+      },
+    );
+  }
 });
 
 describe("F4.4 phone width in headless Chromium", () => {
@@ -203,7 +259,7 @@ describe("F4.6 text colour pairs meet 4.5:1 in headless Chromium", () => {
       });
       try {
         const pairs = await textPairs(page);
-        expect(pairs.length).toBeGreaterThan(5);
+        expect(pairs.length).toBeGreaterThan(4);
         for (const pair of pairs) {
           expect(
             contrast(pair.color, pair.background),

@@ -3,13 +3,36 @@
 Every tag `v<major>.<minor>.<patch>` is listed here. A breaking change bumps the major and
 gives the migration; each release records which mail clients were checked (F8.6).
 
-## Unreleased
+## 0.1.2
 
+Input hardening, plain fixes and release checks. The stricter checks below can break only a
+caller that relied on what they now refuse: a cast theme, an empty `footerReason`, a URL
+with userinfo.
+
+- Stricter, possibly breaking (F1.7, F1.8, F2.10 to F2.12, decision 15):
+  - `renderMail` and `renderText` throw a `ThemeError` (path `theme`) for a theme that
+    `defineTheme` did not return (a cast or a copy).
+  - `defineTheme` refuses a font stack or `webFonts[].family` holding `&` or a control
+    character, and `cssValue` also strips `&` (a `webFonts[].url` query loses its `&`). A
+    hole in `webFonts` is a `ThemeError`. An empty `footerReason` is refused (1 to 300
+    characters).
+  - URLs holding userinfo (`https://user@host/`, `https://@host/`), zero-width characters
+    or Bidi control characters are refused with a `ContentError`; `@` in a path or in
+    `mailto:` stays accepted.
+  - Content from untyped code throws only a `ContentError`: a non-object content, an
+    unknown block type, and a paragraph or note that draws nothing (blank or only
+    invisible characters) are refused.
+  - `renderMail` refuses html over 100,000 UTF-8 bytes with a `ContentError` giving the
+    size, so no mail reaches Gmail's 102 KB clip (F4.8). The text part is not counted.
+- Fixes: a link in a note takes the note's own text colour, in light and dark, meeting 4.5:1
+  on the note's fill; in the text part a wrapped heading is underlined to the length of its
+  longest line, counted in grapheme clusters (an emoji counts one).
+- Release: `scripts/release.ts` checks that CHANGELOG has the version's section and uses the
+  releaser's identity without running `git config`.
 - `npm run send-test` sends one theme and sample through Resend to Claude's mailboxes.
 - Mail clients checked, over the 6 built-in theme and sample pairs, without any mailbox
   (decision 14); screenshots are in the CCS verification report of F8
-  (report dc86cfbf-6dbf-4522-999f-0d8f80c29202, review page
-  `http://127.0.0.1:4500/review.html#/review/mail-kit/AdilNouiri%2Fmail-kit/spec/F8`):
+  (CCS report dc86cfbf-6dbf-4522-999f-0d8f80c29202):
   - Gmail web, Google account (variant A): emulated, never marked passed in real Gmail.
   - Gmail web, non-Google account (variant B, no `<style>` block): emulated.
   - Outlook.com web: emulated, never marked passed in real Outlook.
