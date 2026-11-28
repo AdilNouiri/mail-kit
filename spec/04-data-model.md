@@ -23,10 +23,10 @@ contents; mail-kit owns the built-in themes.
 | `colors.textSoft` | hex | required, 4.5:1 on `card` | Paragraphs, notes. |
 | `colors.muted` | hex | required, 4.5:1 on `card` | Fallback link lead, small text. |
 | `colors.subtle` | hex | required | Fill of code and note blocks; `text` and `textSoft` 4.5:1 on it. |
-| `colors.link` | hex | required, 4.5:1 on `card` | Links in the card. |
+| `colors.link` | hex | required, 4.5:1 on `card` | Links in the card; a link inside a note takes the note's own text colour instead (`textSoft`, `dark.text` in dark mode), underlined, since those are checked on `subtle` (F4.9). |
 | `colors.footerText` | hex | required, 4.5:1 on `canvas` | Footer text and link. |
 | `dark.canvas`, `dark.card`, `dark.text`, `dark.textSoft`, `dark.muted`, `dark.subtle`, `dark.link` | hex | required, same contrast rules; `dark.muted` also 4.5:1 on `dark.canvas`, since it colours the footer in dark mode | The same roles under `prefers-color-scheme: dark`. Brand, accent and their "on" colours stay, so `onAccent` on `accent` is checked once. |
-| `fonts.display` | string | required, ends in a generic family | Heading and wordmark stack. |
+| `fonts.display` | string | required, ends in a generic family; no `&`, control character, `;`, `{`, `}`, `<`, `>` or `\` (F1.7, also `fonts.text` and `webFonts[].family`) | Heading and wordmark stack. |
 | `fonts.displayWeight` | 400, 600 or 700 | default 700 | Heading weight. |
 | `fonts.text` | string | required, ends in a generic family | Body stack. |
 | `webFonts` | `{ family, url, weight }[]` | optional; `url` absolute `https:` `.woff2`; at most 4 | `@font-face` rules; clients without web fonts use the stack. |
@@ -36,7 +36,8 @@ contents; mail-kit owns the built-in themes.
 | `footer.link` | `{ label, url }` or absent | `url` absolute `https:` | One link, such as the privacy page. |
 
 - Owner: the consumer (or mail-kit for a built-in theme). Validated by `defineTheme`
-  (F1); `renderMail` accepts only a `Theme` that came out of it (a branded type).
+  (F1); `renderMail` accepts only a `Theme` that came out of it: a branded type, and at
+  run time a check that the object is one `defineTheme` returned (F1.8).
 
 ## 4.2 MailContent
 
@@ -45,7 +46,7 @@ contents; mail-kit owns the built-in themes.
 | `subject` | string | 1 to 200 characters | Subject line, returned as is and used as `<title>`. |
 | `preheader` | string | optional, at most 140 characters | Inbox preview line. |
 | `blocks` | `Block[]` | 1 to 30 blocks | The body, in order. |
-| `footerReason` | string | optional, at most 300 characters | Overrides `theme.footer.reason` for this mail. |
+| `footerReason` | string | optional, 1 to 300 characters (an empty string is refused, F2.11) | Overrides `theme.footer.reason` for this mail. |
 
 ## 4.3 Block
 

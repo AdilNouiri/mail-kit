@@ -15,7 +15,7 @@ Hand-offs that are not prerequisites (each done in its own session, started by C
 - Majordome serves `https://majordomeapp.fr/media/mail-logo.png` (the PNG of F7.3) and
   adopts the tag (Majordome app session, after M1).
 - Claude's vault mailbox receives the test sends and is read through `vault` (F8.1);
-  it has no web client and no IMAP, so the client checks of T12 need no mailbox: Apple
-  Mail's Quick Look renderer in the sandbox, Gmail and Outlook.com emulated (decision 14).
+  it has no web client and no IMAP, so the client checks of T12 need no mailbox: Gmail,
+  Outlook.com and Apple Mail (WebKit) are emulated (decision 14).
 - The `claude-memory` "New repository" checklist for `mail-kit` (repository list,
   routines, Merge closer, ruleset): Claude, once the repository exists.

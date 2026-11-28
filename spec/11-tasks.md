@@ -3,7 +3,7 @@
 T0 runs first and alone. Two tasks with no dependency between them never modify the same
 file.
 
-Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T11; 7 = T7; 8 = T12.
+Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T11; 7 = T7; 8 = T12; 9 = T13; 10 = T14; 11 = T15; 12 = T16.
 
 | Task | Wave |
 | --- | --- |
@@ -20,6 +20,10 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T11;
 | T10 | 5 |
 | T11 | 6 |
 | T12 | 8 |
+| T13 | 9 |
+| T14 | 10 |
+| T15 | 11 |
+| T16 | 12 |
 
 ### T0 — Skeleton, tooling and frozen interfaces
 
@@ -302,3 +306,121 @@ Waves: 0 = T0; 1 = T1, T2, T3; 2 = T4, T8; 3 = T5, T9; 4 = T6; 5 = T10; 6 = T11;
   it names, and F2.4 still tested; theme URLs still refuse `http:`; `heavy npm run check`
   green; `CHANGELOG.md` has a `0.1.1` entry; `VERSION`, `package.json` and
   `package-lock.json` say `0.1.1`.
+
+The four tasks below apply the project's final review (28 Nov 2026, verdict mergeable,
+12 non-blocking points; decision 15) and ship as `0.1.2`. They run one after the other:
+T13 and T14 share `src/render-mail.ts` and `src/text.ts`, T15 regenerates the `.eml` files
+after T14's text-part change, and T16 bumps the version last. Each item names its review
+point; the review file is quoted where a task needs its measurements.
+
+### T13 — Hardening: URLs, CSS values, malformed content, send-test output
+
+- **Depends on**: T12
+- **Files**: `src/escape.ts`, `src/theme.ts`, `src/html/css.ts`, `src/html/check.ts`, `src/render-mail.ts`, `src/text.ts`, `scripts/send-test.ts`, `test/escape.test.ts`, `test/theme.test.ts`, `test/html/render.test.ts`, `test/html/fixtures.ts`, `test/send-test.test.ts`, `spec/decisions/T13.md`
+- **Agent**: `implementer` (opus, effort high: security, URL validation, escaping, secret output)
+- **Sensitive**: security (URL and CSS value validation, escaping) and a secret that must never reach the output.
+- **Priority**: high
+- **Estimate**: M
+- **Covers**: F1, F2, F8
+- **Content**: a light batch of hardening items, one test each, named after its criterion.
+  - [ ] Point 5, F2.10: `isAllowedUrl` refuses userinfo, `\`, the bidi controls and the
+    zero-width characters for every scheme, content and theme URLs alike.
+  - [ ] Point 6, F1.7: `defineTheme` refuses `&`, control characters and the characters
+    `cssValue` strips in `fonts.display`, `fonts.text` and `webFonts[].family`;
+    `cssValue` also strips `&`; its doc comment says why.
+  - [ ] Point 7 and the empty-paragraph item of point 8, F2.11: `checkRichText` refuses an
+    inline whose `bold` is present and not a string; the block check loops by index, so a
+    hole is a `ContentError`; an empty or blank paragraph or note text and an empty
+    `footerReason` are refused.
+  - [ ] Point 12, F2.12 and F1.8: `renderText` runs the content checks `renderMail` runs;
+    `defineTheme` records each theme it returns (a module `WeakSet`), and `renderMail` and
+    `renderText` throw `ThemeError` (`path` `theme`) for any other object. The built-in
+    themes and `test/html/fixtures.ts` go through `defineTheme` (`testTheme` calls it; the
+    stand-ins stay, built with `defineTheme`, and the stale comment naming T1 goes).
+    Verify the Worker and Node fixtures still pass (they import built-in themes).
+  - [ ] Point 9, F8.7: the three messages of `scripts/send-test.ts` that print
+    `input.theme`, `input.sample` and `input.to` list the accepted values or say the
+    address is not in `MAIL_KIT_TEST_MAILBOXES`; both cases added to
+    `test/send-test.test.ts` with a key-shaped value that must not appear in the output.
+    Moved here from the batch of plain fixes because it guards a secret (the grid gives
+    secrets to `opus`).
+- **Criterion**: F1.7, F1.8, F2.10, F2.11, F2.12 and F8.7 tested; every URL and value of
+  review points 5 and 6 refused in a test; no rendered sample changes (the `.eml` freshness
+  is checked by T15); `heavy npm run check` green.
+
+### T14 — Plain fixes: note links, built-in lint cases, size guard, text part
+
+- **Depends on**: T13
+- **Files**: `src/html/style.ts`, `src/html/rich-text.ts`, `src/html/blocks/note.ts`, `src/render-mail.ts`, `src/text.ts`, `test/lint/compat.test.ts`, `test/lint/browser.test.ts`, `test/lint/code-width.test.ts`, `test/text.test.ts`, `spec/decisions/T14.md`
+- **Agent**: `implementer` (sonnet, effort medium: fully specified, criteria tested)
+- **Priority**: medium
+- **Estimate**: M
+- **Covers**: F3, F4
+- **Content**: a light batch, one test each, named after its criterion.
+  - [ ] Point 1, F4.9: an inline link inside a note takes the note's own text colour,
+    underlined: inline style `textSoft` in light, and a dark rule (`.mk-note .mk-link`,
+    plus its `[data-ogsc]` copy) to `dark.text`; a fixture with a link in a note in
+    `test/lint/browser.test.ts` measures 4.5:1 in both schemes for both built-in themes.
+  - [ ] Point 2: `test/lint/compat.test.ts`, `browser.test.ts` and `code-width.test.ts`
+    build their cases from `builtInThemes` and the samples of `src/samples.ts`, keeping the
+    `notice` fixture of `test/html/fixtures.ts` for the link block and the inline link no
+    sample holds (read it, do not change it: T13 owns it).
+  - [ ] Point 3, F4.8: `renderMail` measures the html in UTF-8 bytes (`TextEncoder`) and
+    throws `ContentError` (`field` `html`, the size in the message) above 100,000; tests
+    with 30 buttons of 2,000-character URLs (refused) and the samples (accepted, under
+    60 KB).
+  - [ ] Point 8, F3.3 and F3.5: headings wrap at 76 like other lines and the `=` line has
+    the length of the longest heading line in grapheme clusters (`Intl.Segmenter`);
+    words split on `[ \t\r\n]+` only, so U+00A0 and U+202F stay. **UNVERIFIED**: that
+    `Intl.Segmenter` exists in `workerd`; the Worker fixture of the check proves it; if it
+    does not, count code points and record it in `spec/decisions/T14.md`.
+- **Criterion**: F3.3, F3.5, F4.8 and F4.9 tested; the F4 lint and browser tests run over
+  every built-in theme × sample; `heavy npm run check` green (the committed `.eml` files
+  may go stale here: T15 regenerates them).
+
+### T15 — Release script, docs and the `.eml` freshness check
+
+- **Depends on**: T14
+- **Files**: `scripts/release.ts`, `test/consumers/release/release.test.ts`, `package.json`, `README.md`, `CLAUDE.md`, `test/clients/apple-mail/eml/`, `spec/decisions/T15.md`
+- **Agent**: `fast-implementer` (sonnet, effort low: mechanical, fully specified script and docs changes)
+- **Priority**: medium
+- **Estimate**: S
+- **Covers**: F6, F8
+- **Content**: a light batch.
+  - [ ] Point 10, F6.6 and F6's identity edge case: the real mode of `scripts/release.ts`
+    no longer sets `user.name` and `user.email` and refuses when git has no identity;
+    `--dry-run` keeps the stand-in identity in its temporary clone; both modes refuse a
+    `VERSION` without a `## <version>` heading in `CHANGELOG.md`. Tests in
+    `test/consumers/release/release.test.ts`.
+  - [ ] Point 11, F8.8: `node test/clients/run.ts` rewrites the `.eml` files after T14,
+    and `package.json`'s `check` script runs `node test/clients/run.ts --verify` after
+    `test:mockup`.
+  - [ ] Point 11: `README.md`'s URL line adds loopback `http:` in content (F2.9), and the
+    README gains `npm run send-test` (06-api) and the client recipes of `test/clients/`
+    (all emulated, decision 14); `CLAUDE.md`'s size line becomes "The samples stay under
+    60 KB (F4.5); `renderMail` refuses html over 100,000 bytes (F4.8)."
+- **Criterion**: F6.6 and F8.8 tested; `npm run check` runs the `.eml` verify step and is
+  green with `heavy`; the README and `CLAUDE.md` lines as above.
+
+### T16 — Release 0.1.2
+
+- **Depends on**: T13, T14, T15
+- **Files**: `src/types.ts`, `package.json`, `package-lock.json`, `README.md`, `CHANGELOG.md`, `test/clients/apple-mail/eml/`, `spec/decisions/T16.md`
+- **Agent**: `fast-implementer` (sonnet, effort low: mechanical version bump and release notes)
+- **Priority**: medium
+- **Estimate**: S
+- **Covers**: F6, F8
+- **Content**: `VERSION` in `src/types.ts`, `package.json` and `package-lock.json`
+  (`npm version 0.1.2 --no-git-tag-version`) to `0.1.2`; `README.md`'s install line to
+  `#v0.1.2`; `CHANGELOG.md`: the `## Unreleased` section becomes `## 0.1.2`, with the
+  T13 to T15 changes (the hardening of F1.7, F1.8, F2.10 to F2.12 named as possibly
+  breaking only for a caller that relied on them: a cast theme, an empty `footerReason`,
+  a URL with userinfo) and the clients line of F8.6, each client marked "emulated", the
+  report named by its CCS report id instead of the `http://127.0.0.1` address (review
+  point 11); the `.eml` files rewritten with `node test/clients/run.ts`, since the version
+  stamp changes. The tag `v0.1.2` is made by the loop from `main` after the integration
+  pull request merges, with `scripts/release.ts` (`decisions/T6.md` D2, as for T11); this
+  task does not tag.
+- **Criterion**: `VERSION`, `package.json` and `package-lock.json` say `0.1.2`;
+  `CHANGELOG.md` has `## 0.1.2` with every client marked and no local address; the
+  release tests (F6.6, run by the check) pass; `heavy npm run check` green.

@@ -26,6 +26,14 @@ Acceptance criteria:
    that font.
 6. **Every built-in theme passes.** Given each theme of `src/themes/`, when the tests run,
    then `defineTheme` accepts it.
+7. **CSS values cannot end a declaration.** Given a font stack or a `webFonts[].family`
+   that holds `&`, a control character (U+0000 to U+001F, U+007F) or a character `cssValue`
+   strips (`; { } < > \`), when `defineTheme` runs, then it throws a `ThemeError` on that
+   field; `cssValue` also strips `&`, so an html entity such as `&#59` can never become `;`
+   inside a `style` attribute (decision 15).
+8. **Only defined themes render.** Given a theme object that `defineTheme` did not return
+   (a cast or a copy), when `renderMail` or `renderText` runs, then it throws a
+   `ThemeError` whose `path` is `theme` (decision 15).
 
 Edge cases and errors:
 
@@ -85,13 +93,30 @@ Acceptance criteria:
    `webFonts`, `footer.link`) stay `https:` only (decision 13). Found by Majordome, whose
    magic link is built from the request origin, `http://localhost:<port>` under
    `wrangler dev` and its Playwright e2e harness.
+10. **Misleading URLs refused for every scheme.** Given a content or theme URL of any
+    accepted scheme that holds userinfo (`https://majordomeapp.example@evil.example/`), a
+    backslash (`https://a.example\@b.example/`), a bidi control (U+202A to U+202E, U+2066
+    to U+2069) or a zero-width character (U+200B to U+200D, U+2060, U+FEFF), when it is
+    checked, then a content URL throws a `ContentError` with the block index and a theme
+    URL a `ThemeError` on its path: the visible fallback link would print a misleading
+    address (decision 15).
+11. **Malformed content refused, never a `TypeError`.** Given an inline whose `bold` is
+    present and not a string, a sparse `blocks` array (a hole), a paragraph or note whose
+    text is empty after trimming, or a `footerReason` that is an empty string, when
+    `renderMail` runs, then it throws a `ContentError` naming the field and the block
+    index where there is one; no input reaching `renderMail` from untyped code throws
+    anything else (decision 15).
+12. **`renderText` runs the same checks.** Given a content that `renderMail` refuses (a
+    `javascript:` URL, for example), when `renderText` is called alone, then it throws
+    the same `ContentError` (decision 15).
 
 Edge cases and errors:
 
 - Empty `blocks` → `ContentError` (a mail with no body is a bug).
 - `subject` empty or over 200 characters → `ContentError`.
 - `preheader` absent → no hidden preheader div.
-- A paragraph `Inline` link uses the theme's `colors.link`, underlined.
+- A paragraph `Inline` link uses the theme's `colors.link`, underlined; inside a note it
+  uses the note's own text colour, underlined (F4.9).
 - A button's address appears twice in the html, in the button's `href` and in the visible
   fallback link of F2.5: this is the designed fallback, not a defect; `fallback: false`
   drops the second one.
@@ -110,11 +135,16 @@ Acceptance criteria:
    for `fr` (French spacing) and `Sign in: https://…` for `en`, and no fallback-link line is
    repeated.
 3. **URLs never broken.** Given a URL of 300 characters, when it renders, then it stays on
-   one line of the text part; other lines wrap at 76 characters on spaces.
+   one line of the text part; other lines, headings included, wrap at 76 characters on
+   spaces. Only ASCII space, tab, CR and LF are break points: a no-break space (U+00A0,
+   U+202F) written by the consumer is kept, so `demandé ?` never breaks before `?`.
 4. **No markup.** Given any content, when it renders, then the text part contains no `<`
    tag and no HTML entity.
 5. **Headings set apart.** Given a heading, when it renders, then it is followed by a line
-   of `=` of the same length, and blocks are separated by one empty line.
+   of `=` of the same length, and blocks are separated by one empty line. A heading wrapped
+   by F3.3 is underlined to the length of its longest line; length counts user-perceived
+   characters (grapheme clusters, `Intl.Segmenter`), so an emoji with a skin tone counts
+   one (decision 15).
 
 Edge cases and errors:
 
@@ -155,11 +185,20 @@ Acceptance criteria:
    Chromium, then the code stays on one line inside the card and `scrollWidth` equals
    390; a code of at most 12 displayed characters (the `482 913` sample) keeps 30 px with
    8 px letter spacing, so the mockups do not change.
+8. **Oversized mail refused.** Given any theme and a content whose html would exceed
+   100,000 bytes in UTF-8 (30 buttons with 2,000-character URLs, for example), when
+   `renderMail` runs, then it throws a `ContentError` whose `field` is `html` and whose
+   message gives the size, so no mail reaches Gmail's 102 KB clip (decision 15).
+9. **Link inside a note readable.** Given a note holding an inline link, under any
+   built-in theme, light and dark, when it renders, then the link takes the note's own text
+   colour (`textSoft` in light, `dark.text` in dark), underlined, and meets 4.5:1 on the note's `subtle` fill (decision 15).
 
 Edge cases and errors:
 
 - A client that drops the `<style>` block (Gmail on some Android accounts) still shows the
   correct light layout at 600 px, scaled by the client.
+- The sample mails stay under 60 KB (F4.5); 60 KB is not guaranteed for every content,
+  only the 100,000-byte refusal of F4.8 is.
 
 ## F5 — Preview gallery
 
@@ -202,11 +241,17 @@ Acceptance criteria:
    `dist/` imports nothing outside itself.
 5. **Version stamp.** Given any rendered mail, then the html holds one comment
    `<!-- mail-kit <version> -->`, so a received mail tells which version built it.
+6. **Release needs its changelog section.** Given a `VERSION` with no `## <version>`
+   heading in `CHANGELOG.md`, when `scripts/release.ts` runs (real or `--dry-run`), then
+   it exits non-zero naming the missing section and tags nothing (F8.6).
 
 Edge cases and errors:
 
 - A consumer on a tag whose major is older keeps working: breaking changes bump the major
   and list the migration in `CHANGELOG.md`.
+- The release commit carries the releaser's own git identity: the real mode never sets
+  `user.name` or `user.email` and refuses when git has none; only `--dry-run`, used by the
+  fixtures in a temporary clone, sets a stand-in identity (decision 15).
 
 ## F7 — Built-in themes
 
@@ -258,21 +303,32 @@ Acceptance criteria:
    screenshots the result in the headless test Chrome, then the banner, the button and the
    footer show as in the preview, light: variant A at 1280 and 390 wide, variant B at 1280
    wide with nothing wider than the 600 px card.
-4. **Apple Mail renderer checked.** Real renderer, without the Mail app window. Given the
-   same mails written as `.eml` files (multipart html and text), when each is opened with
-   Apple Mail's Quick Look extension (`com.apple.mail.MailQuickLookExtension`, no account
-   needed) inside the test sandbox (`sandbox run`), with the guest in light then dark
-   appearance, then the screenshots match the preview in light and dark; if the extension
-   does not render dark, the light screenshots stand and the gap is recorded.
+4. **Apple Mail emulated with WebKit.** Emulated, never marked passed in real Apple Mail:
+   Apple Mail's Quick Look extension opened no window for the `.eml` files in the sandbox
+   guest (`decisions/T12.md` D4). Given the same mails, unmodified, when Playwright's
+   WebKit shows them headless, light and dark, at 1280 and 390 wide, then the screenshots
+   match the preview. The Quick Look recipe (`test/clients/apple-mail/run.sh`) stays, to
+   retry on a guest where the extension renders; only then does F8.4 become a real
+   renderer check.
 5. **Outlook.com web emulated.** Emulated, never marked passed in real Outlook. Given the
    same mails, when a script of `test/clients/` applies Outlook.com's documented rewriting
    (each `class` and selector prefixed `x_`; the `prefers-color-scheme` rules kept, since
-   caniemail lists Outlook.com as supporting them; each rule cited in `decisions/T12.md`) and screenshots the result at 1280 wide, then
-   the banner and a button with its colour show; classic Outlook stays unchecked (open
-   question 2), covered only by the MSO rules of F4.2.
+   caniemail lists Outlook.com as supporting them; each rule cited in `decisions/T12.md`)
+   and screenshots the result at 1280 wide, then the banner and a button with its colour
+   show; classic Outlook stays unchecked (open question 2), covered only by the MSO rules
+   of F4.2.
 6. **Release checklist.** Given a new tag, then `CHANGELOG.md` records which clients were
-   checked for it, each marked "real renderer" or "emulated", and links the screenshots in
-   the verification report.
+   checked for it, each marked "real renderer" or "emulated", and names the verification
+   report that holds the screenshots by its CCS report id, never by a local address.
+7. **Option values never echoed.** Given `send-test` run with an unknown `--theme`,
+   `--sample` or `--lang` value or a `--to` outside the allow-list, when it exits 2, then
+   the message lists the accepted themes, samples or languages, or says the address is
+   not in `MAIL_KIT_TEST_MAILBOXES`, and never prints the value given, so a key passed
+   by mistake never reaches the output (decision 15).
+8. **Committed `.eml` files stay current.** Given the `.eml` files of
+   `test/clients/apple-mail/eml/`, when `npm run check` runs, then
+   `node test/clients/run.ts --verify` is one of its steps and fails when a file differs
+   from `renderMail`'s output.
 
 Edge cases and errors:
 
@@ -280,7 +336,7 @@ Edge cases and errors:
   status.
 - A send to an address outside Claude's own mailboxes is refused unless `--allow-any` is
   given (test sends never reach a real person).
-- The emulations of F8.3 and F8.5 cannot show a client's own behaviour beyond its
+- The emulations of F8.3 to F8.5 cannot show a client's own behaviour beyond its
   documented rules (Gmail's image proxy, forced dark mode in the Gmail and Outlook apps):
   those gaps are listed in the verification report, never closed by asking the owner for
   a mailbox (decision 14).

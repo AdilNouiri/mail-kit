@@ -14,9 +14,9 @@
     the mockups.
   - Consumer: the Worker and Node fixtures import the built `dist/` (F6); the Node
     fixture runs on the Mac's Node 24 and again on Node 22 (F6.3, T10).
-  - Clients (M2): Apple Mail's Quick Look renderer in the sandbox, Gmail web and
-    Outlook.com emulated in the headless test Chrome (F8, decision 14); not part of the
-    check command.
+  - Clients (M2), all emulated (F8, decision 14): Gmail web and Outlook.com in the
+    headless test Chrome, Apple Mail in Playwright's WebKit; not part of the check
+    command, except the `.eml` freshness check `node test/clients/run.ts --verify` (F8.8).
 - **Where each test runs** (decision 12): GitHub CI runs only the quick check, one Linux
   job of `.github/workflows/check.yml` (T9) on pull requests and `workflow_dispatch`,
   never on push: `npm ci`, `npx biome ci`, `npx tsc --noEmit`, and `npx vitest run`
