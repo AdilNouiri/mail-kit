@@ -3,10 +3,11 @@ import type { Theme } from "../types.ts";
 /**
  * Makes a free-text theme value (a font stack, a family, a font URL) safe inside a CSS
  * declaration, whether in a `style` attribute or the `<style>` block: it cannot end the
- * declaration, the rule, the attribute or the element.
+ * declaration, the rule, the attribute or the element. `&` goes too: inside a `style`
+ * attribute the html parser decodes an entity such as `&#59` to `;` before CSS reads it (F1.7).
  */
 export function cssValue(value: string): string {
-  return value.replace(/"/g, "'").replace(/[<>{};\\]/g, "");
+  return value.replace(/"/g, "'").replace(/[<>{};\\&]/g, "");
 }
 
 function familyName(entry: string): string {

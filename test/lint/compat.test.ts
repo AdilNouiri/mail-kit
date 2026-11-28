@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { fallbackStack } from "../../src/html/css.ts";
 import { renderHtml } from "../../src/html/index.ts";
 import type { Block, MailContent, Theme } from "../../src/types.ts";
-import { blockSets, testTheme, themes } from "../html/fixtures.ts";
+import { blockSets, themes } from "../html/fixtures.ts";
 
 const cases = Object.entries(themes).flatMap(([themeName, theme]) =>
   Object.entries(blockSets).map(
@@ -67,14 +68,9 @@ describe("F4.2 Outlook frame", () => {
 
 describe("F4.2 fallback stack never empty", () => {
   it("keeps the generic family when the stack holds web fonts only", () => {
-    const theme = testTheme({
-      ...themes.majordome,
-      fonts: { display: "'Gloock'", text: "'Figtree', sans-serif" },
-    });
-    const html = renderHtml(theme, blockSets["magic-link"]);
-    expect(html).toContain(".mk-heading, .mk-wordmark { font-family:'Gloock' !important; }");
-    expect(html).toContain("font-family:sans-serif !important;");
-    expect(html).not.toMatch(/font-family:\s*!important/);
+    expect(fallbackStack(themes.majordome, "'Gloock'")).toBe("'Gloock'");
+    expect(fallbackStack(themes.majordome, "'Figtree', sans-serif")).toBe("sans-serif");
+    expect(fallbackStack(themes.majordome, "")).toBe("sans-serif");
   });
 });
 

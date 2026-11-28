@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderHtml } from "../../src/html/index.ts";
 import { renderMail } from "../../src/render-mail.ts";
+import { renderText } from "../../src/text.ts";
 import { type Block, ContentError, type MailContent, VERSION } from "../../src/types.ts";
 import {
   code,
@@ -461,5 +462,142 @@ describe("F2 edge cases and content checks", () => {
     const error = thrown(() => renderHtml(majordomeLike, mail([{ type: "divider" }, block])));
     expect(error.field).toBe(field);
     expect(error.blockIndex).toBe(1);
+  });
+});
+
+const MISLEADING_URLS = [
+  "https://majordomeapp.example@evil.example/",
+  "https://@app.example.com/v",
+  "https://a.example\\@b.example/",
+  `https://app.example.com/v?t=${String.fromCharCode(0x202e)}1`,
+  `https://app.example.com/v?t=${String.fromCharCode(0x2066)}x`,
+  `https://app.example.com/v${String.fromCharCode(0x200b)}`,
+  `https://app.exa${String.fromCharCode(0x200d)}mple.com/`,
+  `https://app.example.com/${String.fromCharCode(0x2060)}`,
+  `https://app.example.com/${String.fromCharCode(0xfeff)}`,
+  `mailto:alice${String.fromCharCode(0x202e)}@example.com`,
+  "http://localhost:8787\\v",
+];
+
+describe("F2.10 misleading URLs refused for every scheme", () => {
+  const cases = MISLEADING_URLS.flatMap((url): [string, Block, string][] => [
+    [url, { type: "button", label: "Go", url }, "url"],
+    [url, { type: "link", lead: "Open:", url }, "url"],
+    [url, { type: "paragraph", content: ["See ", { text: "this", url }] }, "content"],
+    [url, { type: "note", content: [{ text: "this", url }] }, "content"],
+  ]);
+
+  it.each(cases)("refuses %j in %o with its field and index", (_url, block, field) => {
+    const error = thrown(() => renderMail(majordomeLike, mail([{ type: "divider" }, block])));
+    expect(error.field).toBe(field);
+    expect(error.blockIndex).toBe(1);
+  });
+});
+
+describe("F2.11 malformed content refused, never a TypeError", () => {
+  const link = { text: "settings", url: TOKEN_URL };
+
+  it.each([
+    [{ bold: 1, text: "x", url: TOKEN_URL }],
+    [{ bold: null }],
+    [{ bold: {} }],
+    [{ bold: undefined, text: "x", url: TOKEN_URL }],
+  ])("refuses the inline %o whose bold is not a string", (inline) => {
+    for (const type of ["paragraph", "note"] as const) {
+      const block = { type, content: ["Hi ", inline] } as unknown as Block;
+      const error = thrown(() => renderMail(majordomeLike, mail([{ type: "divider" }, block])));
+      expect(error.field).toBe("content");
+      expect(error.blockIndex).toBe(1);
+    }
+  });
+
+  it("refuses a hole in a sparse blocks array with its index", () => {
+    const blocks: Block[] = [];
+    blocks[0] = { type: "divider" };
+    blocks[2] = { type: "divider" };
+    const error = thrown(() => renderMail(majordomeLike, mail(blocks)));
+    expect(error.field).toBe("type");
+    expect(error.blockIndex).toBe(1);
+  });
+
+  it.each([
+    [""],
+    ["   "],
+    ["\n\t "],
+    [String.fromCharCode(0xa0)],
+    [[]],
+    [[""]],
+    [[" ", { bold: " " }, "\n"]],
+    [[{ text: " ", url: TOKEN_URL }]],
+  ])("refuses the empty or blank content %j of a paragraph and a note", (content) => {
+    for (const type of ["paragraph", "note"] as const) {
+      const block = { type, content } as unknown as Block;
+      const error = thrown(() => renderMail(majordomeLike, mail([{ type: "divider" }, block])));
+      expect(error.field).toBe("content");
+      expect(error.blockIndex).toBe(1);
+    }
+  });
+
+  it("refuses an empty footerReason, naming the field without a block index", () => {
+    const content = mail([{ type: "divider" }], { footerReason: "" });
+    const error = thrown(() => renderMail(majordomeLike, content));
+    expect(error.field).toBe("footerReason");
+    expect(error.blockIndex).toBeUndefined();
+  });
+
+  it("still accepts a bold-only or link-only paragraph and a one-character footerReason", () => {
+    const blocks: Block[] = [
+      { type: "paragraph", content: [{ bold: "Done" }] },
+      { type: "note", content: [link] },
+    ];
+    expect(() => renderMail(majordomeLike, mail(blocks, { footerReason: "x" }))).not.toThrow();
+  });
+
+  it.each([
+    ["null content", null],
+    ["a string content", "Hello"],
+    ["blocks not an array", { subject: "S", blocks: "divider" }],
+    ["a null block", { subject: "S", blocks: [null] }],
+    ["a block without type", { subject: "S", blocks: [{}] }],
+    ["a null inline", { subject: "S", blocks: [{ type: "paragraph", content: [null] }] }],
+    ["an array inline", { subject: "S", blocks: [{ type: "note", content: [["x"]] }] }],
+    ["a numeric content", { subject: "S", blocks: [{ type: "paragraph", content: 1 }] }],
+    ["a numeric heading", { subject: "S", blocks: [{ type: "heading", text: 1 }] }],
+    ["a numeric lead", { subject: "S", blocks: [{ type: "link", lead: 1, url: TOKEN_URL }] }],
+    ["a numeric code", { subject: "S", blocks: [{ type: "code", code: 1 }] }],
+    ["a string group", { subject: "S", blocks: [{ type: "code", code: "A1", group: "2" }] }],
+    ["a numeric subject", { subject: 1, blocks: [{ type: "divider" }] }],
+    ["a numeric footerReason", { subject: "S", footerReason: 1, blocks: [{ type: "divider" }] }],
+  ])("throws a ContentError, nothing else, for %s", (_name, content) => {
+    thrown(() => renderMail(majordomeLike, content as unknown as MailContent));
+    thrown(() => renderText(majordomeLike, content as unknown as MailContent));
+  });
+});
+
+describe("F2.12 renderText runs the same checks", () => {
+  it.each([
+    [{ type: "button", label: "Go", url: "javascript:alert(1)" }],
+    [{ type: "link", lead: "Open:", url: "data:text/html,x" }],
+    [{ type: "paragraph", content: [{ text: "x", url: "javascript:alert(1)" }] }],
+    [{ type: "paragraph", content: "" }],
+    [{ type: "heading", text: "" }],
+    [{ type: "button", label: "Go", url: MISLEADING_URLS[0] }],
+  ] as unknown as [Block][])("throws the ContentError renderMail throws for %o", (block) => {
+    const content = mail([{ type: "divider" }, block]);
+    const fromMail = thrown(() => renderMail(majordomeLike, content));
+    const fromText = thrown(() => renderText(majordomeLike, content));
+    expect(fromText.field).toBe(fromMail.field);
+    expect(fromText.blockIndex).toBe(1);
+    expect(fromText.message).toBe(fromMail.message);
+  });
+
+  it("checks the subject and footerReason too", () => {
+    const divider: Block[] = [{ type: "divider" }];
+    expect(thrown(() => renderText(majordomeLike, mail(divider, { subject: "" }))).field).toBe(
+      "subject",
+    );
+    expect(thrown(() => renderText(majordomeLike, mail(divider, { footerReason: "" }))).field).toBe(
+      "footerReason",
+    );
   });
 });
