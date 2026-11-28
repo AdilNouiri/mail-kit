@@ -72,6 +72,30 @@ function git(cwd: string, ...args: string[]): string {
   return run("git", args, cwd);
 }
 
+export function assertChangelog(changelog: string, version: string): void {
+  const heading = new RegExp(`^## ${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "m");
+  if (!heading.test(changelog)) throw new Error(`CHANGELOG.md has no "## ${version}" section`);
+}
+
+export function releaserIdentity(repo: string): Record<string, string> {
+  const read = (key: string) => {
+    try {
+      return git(repo, "config", key);
+    } catch {
+      return "";
+    }
+  };
+  const name = read("user.name");
+  const email = read("user.email");
+  if (!name || !email) throw new Error("git has no user.name and user.email: set your identity");
+  return {
+    GIT_AUTHOR_NAME: name,
+    GIT_AUTHOR_EMAIL: email,
+    GIT_COMMITTER_NAME: name,
+    GIT_COMMITTER_EMAIL: email,
+  };
+}
+
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir)) {
@@ -118,8 +142,10 @@ export function release(options: ReleaseOptions): ReleaseResult {
   try {
     git(work, "clone", "--quiet", "--no-hardlinks", repo, cloneDir);
     git(cloneDir, "checkout", "--quiet", "--detach", git(repo, "rev-parse", "HEAD"));
-    git(cloneDir, "config", "user.name", "mail-kit release");
-    git(cloneDir, "config", "user.email", "release@example.com");
+    if (options.dryRun) {
+      git(cloneDir, "config", "user.name", "mail-kit release");
+      git(cloneDir, "config", "user.email", "release@example.com");
+    }
     if (options.fromWorkingTree && options.dryRun) overlayWorkingTree(repo, cloneDir);
 
     const pkg = JSON.parse(readFileSync(join(cloneDir, "package.json"), "utf8")) as {
@@ -131,6 +157,8 @@ export function release(options: ReleaseOptions): ReleaseResult {
     if (!types.includes(`export const VERSION = "${version}";`)) {
       throw new Error(`VERSION in src/types.ts does not match package.json ${version}`);
     }
+    assertChangelog(readFileSync(join(cloneDir, "CHANGELOG.md"), "utf8"), version);
+    const identity = options.dryRun ? {} : releaserIdentity(repo);
     if (!options.dryRun) {
       if (git(repo, "tag", "--list", tag) || git(repo, "ls-remote", "--tags", originUrl, tag)) {
         throw new Error(`tag ${tag} already exists`);
@@ -140,7 +168,11 @@ export function release(options: ReleaseOptions): ReleaseResult {
     const sources = sourceFiles(join(cloneDir, "src")).map((f) => relative(cloneDir, f));
     run(tscBin, [...BUILD_OPTIONS, ...sources], cloneDir);
     git(cloneDir, "add", "--force", "dist");
-    git(cloneDir, "commit", "--quiet", "-m", `release: ${tag}`);
+    execFileSync("git", ["commit", "--quiet", "-m", `release: ${tag}`], {
+      cwd: cloneDir,
+      env: { ...process.env, ...identity },
+      stdio: "pipe",
+    });
     const releaseCommit = git(cloneDir, "rev-parse", "HEAD");
     git(cloneDir, "tag", tag, releaseCommit);
 

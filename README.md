@@ -41,7 +41,7 @@ const { subject, html, text } = renderMail(majordome, {
 ```
 
 `renderMail` is synchronous and pure. Every text is escaped; only `https:` and `mailto:`
-URLs are accepted. Pass `subject`, `html` and `text` to your sender. Every mail carries a
+URLs are accepted, plus loopback `http:` in content blocks. Pass `subject`, `html` and `text` to your sender. Every mail carries a
 `<!-- mail-kit <version> -->` comment that tells which version built it.
 
 ## Themes
@@ -62,6 +62,23 @@ offline in a headless Chromium (`$CCS_TEST_CHROME`, else Playwright's
 `chromium-headless-shell`), never Google Chrome. Without one it exits 1 and prints the
 install command.
 
+## Send a test mail
+
+```sh
+npm run send-test -- --theme <id> --sample <name> --to <address> [--lang fr|en] [--allow-any]
+```
+
+Sends one rendered sample through Resend. It needs `RESEND_API_KEY`, `MAIL_KIT_TEST_FROM` and
+`MAIL_KIT_TEST_MAILBOXES` (the allow-list of recipient addresses) in the environment.
+
+## Client recipes
+
+`node test/clients/run.ts` renders every theme and sample through emulated recipes (all
+emulated, none a real client): Gmail web (two variants), Outlook.com, and WebKit for Apple
+Mail, with screenshots, and rewrites the Apple Mail `.eml` files of
+`test/clients/apple-mail/eml/`. `node test/clients/run.ts --verify` only checks that those
+files match what `renderMail` produces; the check runs it last.
+
 ## Check
 
 ```sh
@@ -70,8 +87,8 @@ heavy npm run check
 ```
 
 Runs Biome, `tsc --noEmit`, the unit tests, the Worker consumer fixture (workerd, through
-`@cloudflare/vitest-plugin`), the Node consumer fixture (`node --test`), the preview and the
-mockup comparison. Both fixtures install the packed tarball of a dry-run release, so they
+`@cloudflare/vitest-plugin`), the Node consumer fixture (`node --test`), the preview, the
+mockup comparison and the `.eml` freshness check. Both fixtures install the packed tarball of a dry-run release, so they
 test what a consumer receives.
 
 ## Release

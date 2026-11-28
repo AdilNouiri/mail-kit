@@ -27,7 +27,7 @@ the reference; read `spec/README.md` first.
 - Mail html: no external stylesheet, no `<script>`, no SVG image, no CSS grid or flex,
   inline styles on every element, table layout, one `<style>` block only for dark mode
   and the phone width; clients that drop it still get a correct light layout.
-- Every rendered mail stays under 60 KB (Gmail clips at 102 KB).
+- The samples stay under 60 KB (F4.5); `renderMail` refuses html over 100,000 bytes (F4.8).
 - Every text is escaped with `src/escape.ts`; there is no raw-html block. Only `https:`
   and `mailto:` URLs are accepted, plus loopback `http:` in content blocks (F2.9); theme
   URLs are `https:` only.
