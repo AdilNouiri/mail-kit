@@ -266,8 +266,8 @@ Acceptance criteria:
    does not render dark, the light screenshots stand and the gap is recorded.
 5. **Outlook.com web emulated.** Emulated, never marked passed in real Outlook. Given the
    same mails, when a script of `test/clients/` applies Outlook.com's documented rewriting
-   (each `class` and selector prefixed `x_`, the `prefers-color-scheme` rules removed;
-   each rule cited in `decisions/T12.md`) and screenshots the result at 1280 wide, then
+   (each `class` and selector prefixed `x_`; the `prefers-color-scheme` rules kept, since
+   caniemail lists Outlook.com as supporting them; each rule cited in `decisions/T12.md`) and screenshots the result at 1280 wide, then
    the banner and a button with its colour show; classic Outlook stays unchecked (open
    question 2), covered only by the MSO rules of F4.2.
 6. **Release checklist.** Given a new tag, then `CHANGELOG.md` records which clients were
