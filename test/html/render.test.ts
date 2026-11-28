@@ -496,6 +496,8 @@ describe("F2.10 misleading URLs refused for every scheme", () => {
 
 describe("F2.11 malformed content refused, never a TypeError", () => {
   const link = { text: "settings", url: TOKEN_URL };
+  const circular: Record<string, unknown> = {};
+  circular.self = circular;
 
   it.each([
     [{ bold: 1, text: "x", url: TOKEN_URL }],
@@ -538,6 +540,32 @@ describe("F2.11 malformed content refused, never a TypeError", () => {
     }
   });
 
+  const invisible = (...codes: number[]) => String.fromCharCode(...codes);
+
+  it.each([
+    ["U+200B", [invisible(0x200b)]],
+    ["U+200C U+200D", [invisible(0x200c, 0x200d)]],
+    ["U+2060 and spaces", [` ${invisible(0x2060)} `]],
+    ["U+FEFF", [invisible(0xfeff)]],
+    ["U+00AD", [invisible(0xad)]],
+    ["U+034F", [invisible(0x34f)]],
+    ["U+3164", [invisible(0x3164)]],
+    ["a bidi control in bold", [{ bold: invisible(0x202e) }]],
+    ["a zero-width link text", [{ text: invisible(0x200b), url: TOKEN_URL }]],
+  ])("refuses a paragraph and a note made only of %s", (_name, content) => {
+    for (const type of ["paragraph", "note"] as const) {
+      const block = { type, content } as unknown as Block;
+      const error = thrown(() => renderText(majordomeLike, mail([{ type: "divider" }, block])));
+      expect(error.field).toBe("content");
+      expect(error.blockIndex).toBe(1);
+    }
+  });
+
+  it("accepts a visible character next to a zero-width one", () => {
+    const blocks: Block[] = [{ type: "note", content: `a${invisible(0x200b)}` }];
+    expect(() => renderMail(majordomeLike, mail(blocks))).not.toThrow();
+  });
+
   it("refuses an empty footerReason, naming the field without a block index", () => {
     const content = mail([{ type: "divider" }], { footerReason: "" });
     const error = thrown(() => renderMail(majordomeLike, content));
@@ -568,6 +596,8 @@ describe("F2.11 malformed content refused, never a TypeError", () => {
     ["a string group", { subject: "S", blocks: [{ type: "code", code: "A1", group: "2" }] }],
     ["a numeric subject", { subject: 1, blocks: [{ type: "divider" }] }],
     ["a numeric footerReason", { subject: "S", footerReason: 1, blocks: [{ type: "divider" }] }],
+    ["a BigInt block type", { subject: "S", blocks: [{ type: 1n }] }],
+    ["a circular block type", { subject: "S", blocks: [{ type: circular }] }],
   ])("throws a ContentError, nothing else, for %s", (_name, content) => {
     thrown(() => renderMail(majordomeLike, content as unknown as MailContent));
     thrown(() => renderText(majordomeLike, content as unknown as MailContent));

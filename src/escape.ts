@@ -62,9 +62,8 @@ function asciiLowerCase(value: string): string {
   return value.replace(/[A-Z]/g, (char) => char.toLowerCase());
 }
 
-/** The text between `//` and the first `/`, `?` or `#`, as written. */
-function writtenAuthority(url: string): string {
-  const rest = url.slice(url.indexOf("//") + 2);
+/** `rest` up to its first `/`, `?` or `#`, as written. */
+function authorityOf(rest: string): string {
   let end = rest.length;
   for (const delimiter of ["/", "?", "#"]) {
     const at = rest.indexOf(delimiter);
@@ -73,10 +72,16 @@ function writtenAuthority(url: string): string {
   return rest.slice(0, end);
 }
 
-/** Any userinfo, even an empty one (`https://@host/`): the text before `@` misleads a reader. */
+/**
+ * Any userinfo, even an empty one (`https://@host/`): the text before `@` misleads a reader.
+ * The parser skips every `/` after an `http:` or `https:` scheme, so `https:///@host/` holds
+ * one too.
+ */
 function hasUserinfo(url: string, parsed: URL): boolean {
   if (parsed.username !== "" || parsed.password !== "") return true;
-  return parsed.host !== "" && url.includes("//") && writtenAuthority(url).includes("@");
+  if (parsed.host === "" || !url.includes("//")) return false;
+  const afterScheme = url.slice(url.indexOf(":") + 1).replace(/^\/+/, "");
+  return authorityOf(afterScheme).includes("@");
 }
 
 /**
@@ -86,7 +91,7 @@ function hasUserinfo(url: string, parsed: URL): boolean {
  */
 function isLoopbackHttp(url: string, parsed: URL): boolean {
   if (asciiLowerCase(url.slice(0, 7)) !== "http://") return false;
-  const authority = writtenAuthority(url);
+  const authority = authorityOf(url.slice(7));
   let host: string;
   let port: string;
   if (authority.startsWith("[")) {

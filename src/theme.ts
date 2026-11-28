@@ -207,7 +207,8 @@ export function defineTheme(input: ThemeInput): Theme {
   if (source.webFonts !== undefined) {
     if (!Array.isArray(source.webFonts)) fail("webFonts", "must be an array");
     if (source.webFonts.length > 4) fail("webFonts", "must hold at most 4 fonts");
-    webFonts = source.webFonts.map((entry: unknown, index: number) => {
+    // Array.from, not map: map skips the holes of a sparse array, so they were never checked.
+    webFonts = Array.from(source.webFonts as unknown[], (entry: unknown, index: number) => {
       const path = `webFonts[${index}]`;
       const raw = objectAt(entry, path, ["family", "url", "weight"]);
       const weight = raw.weight;

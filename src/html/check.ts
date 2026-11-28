@@ -79,8 +79,11 @@ function checkRichText(content: RichText, blockIndex: number): void {
   checkVisible(content.map(inlineWords).join(""), blockIndex);
 }
 
+/** Whitespace, format characters (U+200B, U+2060...) and other characters that draw nothing. */
+const INVISIBLE_ONLY = /^[\s\p{Cf}\p{Default_Ignorable_Code_Point}]*$/u;
+
 function checkVisible(text: string, blockIndex: number): void {
-  if (text.trim() === "") {
+  if (INVISIBLE_ONLY.test(text)) {
     throw new ContentError("content", "content must not be empty or blank", blockIndex);
   }
 }
@@ -117,12 +120,12 @@ function checkBlock(block: Block, index: number): void {
     }
     case "divider":
       return;
-    default:
-      throw new ContentError(
-        "type",
-        `unknown block type ${JSON.stringify((block as { type?: unknown }).type)}`,
-        index,
-      );
+    default: {
+      // JSON.stringify throws on a BigInt or a circular value, so only a string is quoted.
+      const type: unknown = (block as { type?: unknown }).type;
+      const shown = typeof type === "string" ? JSON.stringify(type) : `of type ${typeof type}`;
+      throw new ContentError("type", `unknown block type ${shown}`, index);
+    }
   }
 }
 

@@ -181,6 +181,11 @@ describe("F2.10 misleading URLs refused for every scheme", () => {
     "http://localhost@evil.example/",
     "http://evil.example@localhost/",
     "mailto://user@example.com",
+    "https:///@evil.example/",
+    "https:////@evil.example/",
+    "HTTPS:///@evil.example/",
+    "https:///app.example.com@evil.example/",
+    "http:///@localhost/",
   ])("refuses the userinfo of %j", (url) => {
     expect(isAllowedUrl(url, all)).toBe(false);
   });
