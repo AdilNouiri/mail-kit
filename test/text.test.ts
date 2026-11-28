@@ -1,26 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { renderMail } from "../src/render-mail.ts";
 import { renderText } from "../src/text.ts";
-import { majordome } from "../src/themes/majordome.ts";
+import { defineTheme } from "../src/theme.ts";
+import { majordome, majordomeInput } from "../src/themes/majordome.ts";
 import { ContentError, type Lang, type MailContent, type Theme } from "../src/types.ts";
 
 function theme(lang: Lang): Theme {
-  return {
+  return defineTheme({
+    ...majordomeInput,
     id: "test",
     wordmark: "Test",
-    wordmarkSpacing: 0,
     lang,
-    colors: {},
-    dark: {},
-    fonts: { display: "serif", displayWeight: 700, text: "sans-serif" },
+    fonts: { display: "serif", text: "sans-serif" },
     webFonts: [],
-    buttonRadius: 8,
     footer: {
       reason: "You received this mail because you asked to sign in.",
       legal: "Example Co, 1 Example Street.",
       link: { label: "Help", url: "https://example.com/help" },
     },
-  } as unknown as Theme;
+  });
 }
 
 const sample: MailContent = {

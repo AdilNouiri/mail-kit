@@ -1,15 +1,8 @@
+import { defineTheme } from "../../src/theme.ts";
 import type { Block, MailContent, Theme, ThemeInput } from "../../src/types.ts";
 
-/** Casts the brand: T1's `defineTheme` is not merged yet, and these values are valid. */
 export function testTheme(input: ThemeInput): Theme {
-  return {
-    wordmarkSpacing: 0,
-    lang: "en",
-    buttonRadius: 8,
-    webFonts: [],
-    ...input,
-    fonts: { displayWeight: 700, ...input.fonts },
-  } as unknown as Theme;
+  return defineTheme(input);
 }
 
 export const majordomeLike = testTheme({
